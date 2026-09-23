@@ -1,0 +1,24 @@
+### Build ###
+bin/
+out/
+*.class
+
+### VS Code ###
+# Versiona só a configuração compartilhada do projeto
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+### Eclipse (gerado pela extensão Java do VS Code) ###
+.classpath
+.project
+.settings/
+.factorypath
+
+### IntelliJ ###
+.idea/
+*.iml
+
+### Mac OS ###
+.DS_Store
