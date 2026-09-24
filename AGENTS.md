@@ -28,6 +28,16 @@ O objetivo é que o estudante **entenda e escreva o código**, e consiga explic�
 
 **Exceção:** tarefas mecânicas que não fazem parte do aprendizado (configuração do VSCode, git, reorganizar arquivos, scripts de teste) podem ser feitas pelo agente, **depois de confirmar** com o estudante.
 
+### ⚠️ Mantenha o registro do trabalho atualizado (obrigatório)
+
+A dupla trabalha em computadores e sessões diferentes, cada um com o seu agente. **A seção 3 deste arquivo é a única memória compartilhada** entre eles. Se ela ficar desatualizada, o próximo agente vai sugerir refazer algo pronto ou pular uma etapa.
+
+- **No início de cada sessão:** leia a seção 3 e confira se ela bate com o código (abra os arquivos citados). Se não bater, avise o estudante antes de continuar.
+- **Sempre que uma etapa terminar e funcionar:** marque `[x]` no checklist da fase, na mesma hora, sem esperar o fim da sessão.
+- **Sempre que surgir algo importante:** uma decisão de projeto, um problema encontrado, uma dúvida para levar ao professor ou uma resposta dele. Anote em "Decisões e observações" da fase.
+- **Quando uma fase nova começar:** peça ao estudante o enunciado (PDF ou texto), preencha os requisitos e o checklist daquela fase e mude o título "Fase atual".
+- **Antes de encerrar a sessão:** lembre o estudante de commitar o `AGENTS.md` junto com o código, para que a outra pessoa da dupla receba as anotações, além de reforçar que o aluno revise o que foi adicionado ao arquivo.
+
 ---
 
 ## 2. O projeto
@@ -59,7 +69,15 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 ---
 
-## 3. Fase atual: T1A — Gerente de Memória com paginação
+## 3. Fases do trabalho e estado atual
+
+O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
+
+**Fase atual: T1A**
+
+---
+
+### T1A — Gerente de Memória com paginação
 
 Requisitos do enunciado:
 - Memória com `tamMem` palavras, páginas/frames de `tamPg` palavras. Deve funcionar com **diferentes valores** de `tamMem` e `tamPg`.
@@ -68,7 +86,7 @@ Requisitos do enunciado:
 - **Tradução**: durante a execução, **todo** acesso à memória converte endereço lógico → físico: `pagina = end / tamPg`, `offset = end % tamPg`, `fisico = tabela[pagina] * tamPg + offset`. Acesso fora das páginas do processo → interrupção de endereço inválido.
 - **Os programas em `programas/Programs.java` NÃO podem ser alterados.**
 
-### Plano e estado
+#### Checklist
 
 - [x] Código do professor reorganizado em pacotes (tag git `codigo-base`)
 - [x] `GM`: construtor, `aloca` `desaloca`
@@ -77,13 +95,25 @@ Requisitos do enunciado:
 - [ ] Tradução na `CPU`: método `traduz(endLogico)` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM` e na syscall de escrita. O `pc` continua **lógico**. `setContext` passa a receber a tabela de páginas.
 - [ ] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16)
 
-> Mantenha esta lista atualizada conforme o trabalho avança.
+#### Decisões e observações
 
-### Cuidados conhecidos
-
-- `PB` (tamanho 16, acessa endereço 50) e `PC` (tamanho 54, acessa 99) escrevem fora da própria área. Com proteção de memória, vão gerar endereço inválido. Isso está correto, mas deve ser confirmado com o professor.
+- `PB` (tamanho 16, acessa endereço 50) e `PC` (tamanho 54, acessa 99) escrevem fora da própria área. Com proteção de memória, vão gerar endereço inválido. Isso está correto, mas **deve ser confirmado com o professor** (pendente).
 - `JMPIM`, `JMPILM` e `JMPIEM` não validam endereço no código original. A tradução deve corrigir isso.
 - Não criar `PCB`, gerente de processos nem escalonador nesta fase. A tabela de páginas pode ser passada direto para a CPU.
+- `GM.aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
+- O professor autorizou separar o código em vários arquivos/pacotes.
+
+---
+
+### T1B — (enunciado ainda não adicionado)
+
+> Quando esta fase começar, peça o enunciado ao estudante e preencha: título, requisitos, checklist e "Decisões e observações", no mesmo formato do T1A.
+
+---
+
+### T1C — (enunciado ainda não adicionado)
+
+> Quando esta fase começar, peça o enunciado ao estudante e preencha: título, requisitos, checklist e "Decisões e observações", no mesmo formato do T1A.
 
 ---
 
