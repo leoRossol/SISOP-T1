@@ -71,8 +71,7 @@ Requisitos do enunciado:
 ### Plano e estado
 
 - [x] Código do professor reorganizado em pacotes (tag git `codigo-base`)
-- [x] `GM`: construtor e `aloca`
-- [ ] `GM`: `desaloca`
+- [x] `GM`: construtor, `aloca` `desaloca`
 - [ ] Parametrizar `tamPg` (`Sistema`, `SO`) e criar o `GM` no `SO`
 - [ ] Carga paginada em `Utilities.loadProgram`
 - [ ] Tradução na `CPU`: método `traduz(endLogico)` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM` e na syscall de escrita. O `pc` continua **lógico**. `setContext` passa a receber a tabela de páginas.
