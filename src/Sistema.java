@@ -31,9 +31,9 @@ public class Sistema {
     public SO so;
     public Programs progs;
 
-    public Sistema(int tamMem) {
+    public Sistema(int tamMem, int tamPg) { // [T1A] recebe tamanho de página
         hw = new HW(tamMem);           // memoria do HW tem tamMem palavras
-        so = new SO(hw);
+        so = new SO(hw, tamPg);        // [T1A] repassa tamanho de página para o SO
         hw.cpu.setUtilities(so.utils); // permite cpu fazer dump de memoria ao avancar
         progs = new Programs();
     }
@@ -57,7 +57,7 @@ public class Sistema {
     // -------------------------------------------------------------------------------------------------------
     // ------------------- instancia e testa sistema
     public static void main(String args[]) {
-        Sistema s = new Sistema(1024);
+        Sistema s = new Sistema(1024, 8); // [T1A] memória de 1024 palavras, página de 8
         s.run();
     }
 }

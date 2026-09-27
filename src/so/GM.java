@@ -15,7 +15,8 @@ public class GM {
             }
     }
 
-    // Aloca frames para nroPalavras. Devolve a tabela de páginas, ou null se não houver espaço.
+
+    // [T1A] - ALOCADOR - Aloca frames para nroPalavras. Devolve a tabela de páginas, ou null se não houver espaço.
     public int[] aloca(int nroPalavras) {
         // 1- quantas páginas são necessárias
         int nroPaginas = nroPalavras / tamPg;
@@ -45,10 +46,15 @@ public class GM {
         } return tabela;
     }
 
-    // Libera os frames de uma tabela de paginas
+
+    // [T1A] - DESALOCADOR - Libera os frames de uma tabela de paginas
     public void desaloca(int[] tabela){
         for (int p = 0; p < tabela.length; p++){
             frameLivre[tabela[p]] = true;    // libera o frame onde estava a página p
         }
     }
+
+
+    // util - getter tamPG
+    public int getTamPg(){ return tamPg; }
 }

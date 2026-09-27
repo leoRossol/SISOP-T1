@@ -90,8 +90,8 @@ Requisitos do enunciado:
 
 - [x] Código do professor reorganizado em pacotes (tag git `codigo-base`)
 - [x] `GM`: construtor, `aloca` `desaloca`
-- [ ] Parametrizar `tamPg` (`Sistema`, `SO`) e criar o `GM` no `SO`
-- [ ] Carga paginada em `Utilities.loadProgram`
+- [x] Parametrizar `tamPg` (`Sistema`, `SO`) e criar o `GM` no `SO`
+- [x] Carga paginada em `Utilities.loadProgram` (devolve a tabela de páginas; `loadAndExec` guarda ela, mas a CPU ainda não usa)
 - [ ] Tradução na `CPU`: método `traduz(endLogico)` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM` e na syscall de escrita. O `pc` continua **lógico**. `setContext` passa a receber a tabela de páginas.
 - [ ] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16)
 
@@ -102,18 +102,47 @@ Requisitos do enunciado:
 - Não criar `PCB`, gerente de processos nem escalonador nesta fase. A tabela de páginas pode ser passada direto para a CPU.
 - `GM.aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
 - O professor autorizou separar o código em vários arquivos/pacotes.
+- `tamPg` desce pelos construtores: `main` → `Sistema(tamMem, tamPg)` → `SO(hw, tamPg)` → `GM`. A `Utilities` recebe o `GM` e lê o tamanho com `gm.getTamPg()`.
+- **Atenção:** enquanto a tradução na CPU não estiver feita, a CPU ainda acessa endereços físicos direto. Os programas só rodam certo porque, com a memória vazia, o GM entrega os frames 0, 1, 2... em ordem. Com frames fora de ordem, vão quebrar — isso é esperado até a etapa de tradução.
 
 ---
 
-### T1B — (enunciado ainda não adicionado)
+### T1B — Gerente de Processos (ainda não iniciado)
 
-> Quando esta fase começar, peça o enunciado ao estudante e preencha: título, requisitos, checklist e "Decisões e observações", no mesmo formato do T1A.
+Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
+- **GP** (módulo do SO):
+  - `criaProcesso(programa)`: verifica o tamanho do programa, pede memória ao GM (se não houver, retorna falso), cria o **PCB**, guarda a tabela de páginas no PCB, carrega o programa, seta id, `pc = 0` etc., coloca o PCB na fila de **prontos** e retorna verdadeiro.
+  - `desalocaProcesso(id)`: desaloca toda a memória do processo, retira-o de qualquer fila e desaloca o PCB.
+- **Estruturas:** PCB (um por processo); variável `rodando` (running) apontando para o PCB em execução; lista de **prontos** (ready) com PCBs.
+- **Sistema interativo** (shell que espera comandos em loop): `new <programa>` (cria processo e retorna id único), `rm <id>`, `ps`, `dump <id>` (PCB + memória do processo), `dumpM <inicio> <fim>` (memória física), `exec <id>`, `traceOn`, `traceOff`, `exit`. Os nomes podem mudar, desde que façam o descrito.
+
+#### Checklist
+
+- [ ] (montar quando a fase começar, junto com o estudante)
+
+#### Decisões e observações
+
+- (nenhuma ainda)
 
 ---
 
-### T1C — (enunciado ainda não adicionado)
+### T1C — Escalonamento (ainda não iniciado)
 
-> Quando esta fase começar, peça o enunciado ao estudante e preencha: título, requisitos, checklist e "Decisões e observações", no mesmo formato do T1A.
+Enunciado: `enunciados/T1-T1C.pdf`. Requisitos:
+- **Troca de contexto:** salvar o contexto da CPU no PCB quando o processo sai da CPU e restaurar quando ele volta.
+- **Relógio:** a cada *delta* instruções (contador de ciclos na CPU, a forma sugerida por ser mais simples), gerar uma interrupção de tempo. A rotina de tratamento salva o contexto, coloca o processo em prontos, escolhe o próximo e restaura o contexto dele (round robin).
+- **Fim de processo:** `STOP` é chamada de sistema; a rotina libera a memória, desaloca o PCB e escalona outro processo.
+- **Comandos:** manter todos do T1B e adicionar `execAll` (executa de forma escalonada todos os processos em memória até acabarem; deve dar para acompanhar o escalonamento e ver os resultados na memória).
+- **Funcionamento contínuo:** o escalonamento roda sozinho enquanto o usuário digita comandos. **No mínimo duas threads**: uma atende o usuário, outra escalona.
+- O diagrama `enunciados/Esquema.pdf` mostra a arquitetura (versões sequencial, multithreaded e com E/S).
+
+#### Checklist
+
+- [ ] (montar quando a fase começar, junto com o estudante)
+
+#### Decisões e observações
+
+- (nenhuma ainda)
 
 ---
 

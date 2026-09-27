@@ -9,19 +9,41 @@ import hardware.Word;
 // carga na memória
 public class Utilities {
     private HW hw;
+    private GM gm;                        // [T1A] usado na carga para alocar frames
 
-    public Utilities(HW _hw) {
+    public Utilities(HW _hw, GM _gm) {    // [T1A] recebe o GM
         hw = _hw;
+        gm = _gm;                         
     }
 
-    private void loadProgram(Word[] p) {
+
+
+    // [T1A] carga paginada: aloca frames no GM e copia cada pagina para o seu frame
+    // devolve tabela de paginas, ou null se nao houver memoria
+    private int[] loadProgram(Word[] p) {
         Word[] m = hw.mem.pos; // m[] é o array de posições memória do hw
-        for (int i = 0; i < p.length; i++) {
-            m[i].opc = p[i].opc;
-            m[i].ra = p[i].ra;
-            m[i].rb = p[i].rb;
-            m[i].p = p[i].p;
+        int tamPg = gm.getTamPg();
+
+        //1- pedir ao GM alocacao para o tamanho do programa
+        int[] tabela = gm.aloca(p.length);
+        if (tabela == null) { 
+            System.out.println("Sem memória para carregar o programa");
+            return  null; 
         }
+
+        //2- calcular o endereco fisico da palavra i
+        for (int i = 0; i < p.length; i++) {
+            int pagina = i/tamPg;
+            int offset = i%tamPg;
+            int frame = tabela[pagina];
+            int fisico = (frame * tamPg) + offset;
+
+            m[fisico].opc = p[i].opc;
+            m[fisico].ra = p[i].ra;
+            m[fisico].rb = p[i].rb;
+            m[fisico].p = p[i].p;
+        }
+        return tabela;
     }
 
     // dump da memória
@@ -47,7 +69,7 @@ public class Utilities {
     }
 
     public void loadAndExec(Word[] p) {
-        loadProgram(p); // carga do programa na memoria
+        int[] tabela = loadProgram(p); // [T1A] carga paginada; guarda a tabela de páginas
         System.out.println("---------------------------------- programa carregado na memoria");
         dump(0, p.length); // dump da memoria nestas posicoes
         hw.cpu.setContext(0); // seta pc para endereço 0 - ponto de entrada dos programas

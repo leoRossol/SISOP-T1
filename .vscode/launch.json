@@ -6,7 +6,6 @@
       "name": "Sistema",
       "request": "launch",
       "mainClass": "Sistema",
-      "projectName": "SISOP-T1",
       "console": "integratedTerminal"
     }
   ]
