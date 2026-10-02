@@ -4,10 +4,54 @@ import so.InterruptHandling;
 import so.SysCallHandling;
 import so.Utilities;
 
+
+
+
+
+
 // ---------------------------------------------------------------------------------------------------
 // --------------------- C P U - definicoes da CPU
 
 public class CPU {
+
+    // [T1A] contexto de memória do processo ===============================================
+    private int[] tabelaPaginas; // tabela de paginas do processo em execucao
+    private int tamPg;         // tamanho da pagina
+
+    public void setContext(int _pc, int[] _tabela) {
+        pc = _pc;
+        tabelaPaginas = _tabela;
+        irpt = Interrupts.noInterrupt;
+    }
+
+    private int traduz(int endLogico){
+
+        //1- enderco negativo -> invalido
+        if (endLogico < 0){
+                irpt = Interrupts.intEnderecoInvalido;
+                return -1;
+        }
+
+        //2- calcular a pagina e offset
+        int pagina = endLogico/tamPg;
+        int offset = endLogico%tamPg;
+
+        //3- a pagina existe na tabela desse processo
+        if (pagina >= tabelaPaginas.length){
+            irpt = Interrupts.intEnderecoInvalido;
+            return -1;
+        }
+
+        //4- calcular o fisico e devolver
+        int frame = tabelaPaginas[pagina];
+        int fisico = (frame * tamPg) + offset;
+        return fisico;
+    }
+    // fim do codigo do grupo ================================================================================
+
+
+
+
     private int maxInt; // valores maximo e minimo para inteiros nesta cpu
     private int minInt;
     // CONTEXTO da CPU ...
@@ -32,10 +76,11 @@ public class CPU {
     private boolean debug;      // se true entao mostra cada instrucao em execucao
     private Utilities u;        // para debug (dump)
 
-    public CPU(Memory _mem, boolean _debug) { // ref a MEMORIA passada na criacao da CPU
+    public CPU(Memory _mem, int _tamPg, boolean _debug) { // ref a MEMORIA passada na criacao da CPU
         maxInt = 32767;            // capacidade de representacao modelada
         minInt = -32767;           // se exceder deve gerar interrupcao de overflow
         m = _mem.pos;              // usa o atributo 'm' para acessar a memoria, só para ficar mais pratico
+        tamPg = _tamPg;
         reg = new int[10];         // aloca o espaço dos registradores - regs 8 e 9 usados somente para IO
 
         debug = _debug;            // se true, print da instrucao em execucao
@@ -72,11 +117,6 @@ public class CPU {
         return true;
     }
 
-    public void setContext(int _pc) {                 // usado para setar o contexto da cpu para rodar um processo
-        // [ nesta versao é somente colocar o PC na posicao 0 ]
-        pc = _pc;                                     // pc cfe endereco logico
-        irpt = Interrupts.noInterrupt;                // reset da interrupcao registrada
-    }
 
     public void run() {                               // execucao da CPU supoe que o contexto da CPU, vide acima,
         // esta devidamente setado
