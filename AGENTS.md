@@ -94,8 +94,9 @@ Requisitos do enunciado:
 - [x] Carga paginada em `Utilities.loadProgram` (devolve a tabela de páginas; `loadAndExec` guarda ela, mas a CPU ainda não usa)
 - [x] `CPU` recebe `tamPg` no construtor e a tabela de páginas no `setContext(pc, tabela)`; método `traduz(endLogico)` criado (commit `71a74db`)
 - [x] Tradução na `CPU`: `traduz` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM`. O `pc` continua **lógico** (jumps que não leem memória não mudam).
-- [ ] Tradução na syscall de escrita (`SysCallHandling.handle`, lê `hw.mem.pos[reg[9]]` direto)
-- [ ] Remover `legal()` da `CPU` (ficou sem uso)
+- [x] Tradução na syscall de escrita (`traduz` virou `public` para a `SysCallHandling` usar)
+- [x] Remover `legal()` da `CPU` (ficou sem uso)
+- [x] `loadAndExec`: se `loadProgram` devolver `null` (não coube), não executa
 - [ ] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16)
 
 #### Decisões e observações
@@ -103,6 +104,9 @@ Requisitos do enunciado:
 - `PB` (tamanho 16, acessa endereço 50) e `PC` (tamanho 54, acessa 99) escrevem fora da própria área. Com proteção de memória, vão gerar endereço inválido. Isso está correto, mas **deve ser confirmado com o professor** (pendente).
 - `JMPIM`, `JMPILM` e `JMPIEM` não validam endereço no código original. A tradução deve corrigir isso.
 - Não criar `PCB`, gerente de processos nem escalonador nesta fase. A tabela de páginas pode ser passada direto para a CPU.
+- **Prazo:** apresentação de todas as fases (T1A+B+C) na quinta, 08/10/2026. Plano: T1A até sex 02/10, T1B sáb–dom, T1C seg–ter, revisão qua. Para caber no prazo, o agente escreve as partes mecânicas (testes, parsing do shell, comandos de dump/ps, esqueleto de threads) e o estudante escreve a lógica central (PCB, GP, troca de contexto, escalonador).
+- `GM.aloca` devolve `int[]` (ou `null`) em vez do `boolean aloca(int, OUT int[])` sugerido no enunciado, porque Java não tem parâmetro de saída. Saber justificar na apresentação.
+- A proteção é por página: acessos às sobras da última página (ex.: endereço 21 no fatorial de 20 palavras com `tamPg` 8) são aceitos. É fragmentação interna, comportamento normal da paginação.
 - `GM.aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
 - O professor autorizou separar o código em vários arquivos/pacotes.
 - `tamPg` desce pelos construtores: `main` → `Sistema(tamMem, tamPg)` → `SO(hw, tamPg)` → `GM`. A `Utilities` recebe o `GM` e lê o tamanho com `gm.getTamPg()`.

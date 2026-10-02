@@ -26,7 +26,7 @@ public class CPU {
     }
 
     // [T1A] traduz endereço lógico -> físico; se inválido, liga intEnderecoInvalido e devolve -1
-    private int traduz(int endLogico){
+    public int traduz(int endLogico){
 
         //1- enderco negativo -> invalido
         if (endLogico < 0){
@@ -99,16 +99,9 @@ public class CPU {
     }
 
 
-    // verificação de enderecamento
-    private boolean legal(int e) { // todo acesso a memoria tem que ser verificado se é válido -
-        // aqui no caso se o endereco é um endereco valido em toda memoria
-        if (e >= 0 && e < m.length) {
-            return true;
-        } else {
-            irpt = Interrupts.intEnderecoInvalido;    // se nao for liga interrupcao no meio da exec da instrucao
-            return false;
-        }
-    }
+    // [T1A] legal() removido: 
+    // substituído por traduz(), que também valida as páginas do processo
+
 
     private boolean testOverflow(int v) {             // toda operacao matematica deve avaliar se ocorre overflow
         if ((v < minInt) || (v > maxInt)) {

@@ -70,6 +70,7 @@ public class Utilities {
 
     public void loadAndExec(Word[] p) {
         int[] tabela = loadProgram(p); // [T1A] carga paginada; guarda a tabela de páginas
+        if (tabela == null) { return; }   // [T1A] não coube na memória: não executa
         System.out.println("---------------------------------- programa carregado na memoria");
         dump(0, p.length); // dump da memoria nestas posicoes
         hw.cpu.setContext(0, tabela); // seta pc para endereço 0 - ponto de entrada dos programas  // [T1A] passa a tabela de páginas para a CPU

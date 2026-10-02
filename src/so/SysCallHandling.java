@@ -25,7 +25,11 @@ public class SysCallHandling {
 
         } else if (hw.cpu.reg[8]==2){
             // escrita - escreve o conteuodo da memoria na posicao dada em reg[9]
-            System.out.println("OUT:   "+ hw.mem.pos[hw.cpu.reg[9]].p);
+            int fis = hw.cpu.traduz(hw.cpu.reg[9]);           // [T1A] reg[9] é endereço lógico
+            if (fis >= 0) {                                    // [T1A]
+                System.out.println("OUT:   "+ hw.mem.pos[fis].p);
+            }
+
         } else {System.out.println("  PARAMETRO INVALIDO"); }
     }
 }
