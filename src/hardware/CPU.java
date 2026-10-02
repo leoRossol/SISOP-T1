@@ -18,12 +18,14 @@ public class CPU {
     private int[] tabelaPaginas; // tabela de paginas do processo em execucao
     private int tamPg;         // tamanho da pagina
 
+    // [T1A] substitui o setContext(int) original: agora recebe também a tabela de páginas
     public void setContext(int _pc, int[] _tabela) {
-        pc = _pc;
+        pc = _pc;                       // pc cfe endereco logico
         tabelaPaginas = _tabela;
-        irpt = Interrupts.noInterrupt;
+        irpt = Interrupts.noInterrupt;  // reset da interrupcao registrada
     }
 
+    // [T1A] traduz endereço lógico -> físico; se inválido, liga intEnderecoInvalido e devolve -1
     private int traduz(int endLogico){
 
         //1- enderco negativo -> invalido
@@ -76,11 +78,11 @@ public class CPU {
     private boolean debug;      // se true entao mostra cada instrucao em execucao
     private Utilities u;        // para debug (dump)
 
-    public CPU(Memory _mem, int _tamPg, boolean _debug) { // ref a MEMORIA passada na criacao da CPU
+    public CPU(Memory _mem, int _tamPg, boolean _debug) { // ref a MEMORIA passada na criacao da CPU  // [T1A] recebe tamPg
         maxInt = 32767;            // capacidade de representacao modelada
         minInt = -32767;           // se exceder deve gerar interrupcao de overflow
         m = _mem.pos;              // usa o atributo 'm' para acessar a memoria, só para ficar mais pratico
-        tamPg = _tamPg;
+        tamPg = _tamPg;            // [T1A] tamanho da página, usado no traduz
         reg = new int[10];         // aloca o espaço dos registradores - regs 8 e 9 usados somente para IO
 
         debug = _debug;            // se true, print da instrucao em execucao
@@ -125,8 +127,9 @@ public class CPU {
 
             // --------------------------------------------------------------------------------------------------
             // FASE DE FETCH
-            if (legal(pc)) { // pc valido
-                ir = m[pc];  // <<<<<<<<<<<< AQUI faz FETCH - busca posicao da memoria apontada por pc, guarda em ir
+            int fis = traduz(pc);   // [T1A] traduz o pc (lógico) para endereço físico
+            if (fis >= 0) {         // [T1A] tradução deu certo?
+                ir = m[fis];        // [T1A] <<<<<<<<<<<< AQUI faz FETCH - busca posicao da memoria apontada por pc, guarda em ir
                 // resto é dump de debug
                 if (debug) {
                     System.out.print("                                              regs: ");
@@ -150,41 +153,46 @@ public class CPU {
                         reg[ir.ra] = ir.p;
                         pc++;
                         break;
+
                     case LDD: // Rd <- [A]
-                        if (legal(ir.p)) {
-                            reg[ir.ra] = m[ir.p].p;
+                        fis = traduz(ir.p);                 // [T1A] traduz o endereço lido
+                        if (fis >=0){                       // [T1A] antes: legal(ir.p)
+                            reg[ir.ra] = m[fis].p;          // [T1A]
                             pc++;
-                        }
-                        break;
+                        } break;
+
                     case LDX: // RD <- [RS] // NOVA
-                        if (legal(reg[ir.rb])) {
-                            reg[ir.ra] = m[reg[ir.rb]].p;
+                        fis = traduz(reg[ir.rb]);           // [T1A] traduz o endereço guardado em rb
+                        if (fis >=0 ){                      // [T1A] antes: legal(reg[ir.rb])
+                            reg[ir.ra] = m[fis].p;          // [T1A]
                             pc++;
-                        }
-                        break;
+                        } break;
+
                     case STD: // [A] ← Rs
-                        if (legal(ir.p)) {
-                            m[ir.p].opc = Opcode.DATA;
-                            m[ir.p].p = reg[ir.ra];
+                        fis = traduz(ir.p);                 // [T1A] traduz o endereço escrito
+                        if (fis>=0){                        // [T1A] antes: legal(ir.p)
+                            m[fis].opc = Opcode.DATA;       // [T1A]
+                            m[fis].p = reg[ir.ra];          // [T1A]
                             pc++;
-                            if (debug)
-                            {   System.out.print("                                  ");
-                                u.dump(ir.p,ir.p+1);
+                            if (debug) {
+                                System.out.print("                                  ");
+                                u.dump(fis, fis+1);         // [T1A] dump mostra a posição física
                             }
-                        }
-                        break;
+                        } break;
+
                     case STX: // [Rd] ←Rs
-                        if (legal(reg[ir.ra])) {
-                            m[reg[ir.ra]].opc = Opcode.DATA;
-                            m[reg[ir.ra]].p = reg[ir.rb];
+                        fis = traduz(reg[ir.ra]);           // [T1A] traduz o endereço guardado em ra
+                        if (fis >= 0) {                     // [T1A] antes: legal(reg[ir.ra])
+                            m[fis].opc = Opcode.DATA;       // [T1A]
+                            m[fis].p = reg[ir.rb];          // [T1A]
                             pc++;
-                        }
-                        ;
-                        break;
+                        } break;
+
                     case MOVE: // RD <- RS
                         reg[ir.ra] = reg[ir.rb];
                         pc++;
                         break;
+
                     // Instrucoes Aritmeticas
                     case ADD: // Rd ← Rd + Rs
                         reg[ir.ra] = reg[ir.ra] + reg[ir.rb];
@@ -216,9 +224,13 @@ public class CPU {
                     case JMP: // PC <- k
                         pc = ir.p;
                         break;
+                        
                     case JMPIM: // PC <- [A]
-                        pc = m[ir.p].p;
-                        break;
+                        fis = traduz(ir.p);                 // [T1A] antes não validava o endereço
+                        if (fis >= 0){                      // [T1A]
+                            pc = m[fis].p;                  // [T1A] lê da posição física; pc continua lógico
+                        } break;                            // [T1A]
+
                     case JMPIG: // If Rc > 0 Then PC ← Rs Else PC ← PC +1
                         if (reg[ir.rb] > 0) {
                             pc = reg[ir.ra];
@@ -226,6 +238,7 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPIGK: // If RC > 0 then PC <- k else PC++
                         if (reg[ir.rb] > 0) {
                             pc = ir.p;
@@ -233,6 +246,7 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPILK: // If RC < 0 then PC <- k else PC++
                         if (reg[ir.rb] < 0) {
                             pc = ir.p;
@@ -240,6 +254,7 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPIEK: // If RC = 0 then PC <- k else PC++
                         if (reg[ir.rb] == 0) {
                             pc = ir.p;
@@ -247,6 +262,7 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPIL: // if Rc < 0 then PC <- Rs Else PC <- PC +1
                         if (reg[ir.rb] < 0) {
                             pc = reg[ir.ra];
@@ -254,6 +270,7 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPIE: // If Rc = 0 Then PC <- Rs Else PC <- PC +1
                         if (reg[ir.rb] == 0) {
                             pc = reg[ir.ra];
@@ -261,29 +278,37 @@ public class CPU {
                             pc++;
                         }
                         break;
+
                     case JMPIGM: // If RC > 0 then PC <- [A] else PC++
-                        if (legal(ir.p)){
+                        fis = traduz(ir.p);                 // [T1A] traduz endereço lido
+                        if (fis >= 0) {                     // [T1A] antes: legal(ir.p)
                             if (reg[ir.rb] > 0) {
-                                pc = m[ir.p].p;
+                                pc = m[fis].p;              // [T1A] lê da posição física; pc continua lógico
                             } else {
                                 pc++;
                             }
-                        }
-                        break;
+                        } break;
+
                     case JMPILM: // If RC < 0 then PC <- k else PC++
-                        if (reg[ir.rb] < 0) {
-                            pc = m[ir.p].p;
-                        } else {
-                            pc++;
-                        }
-                        break;
+                        fis = traduz(ir.p);                 // [T1A] antes não validava o endereço
+                        if (fis >= 0) {                     // [T1A]
+                            if (reg[ir.rb] < 0) {
+                                pc = m[fis].p;              // [T1A]
+                            } else {
+                                pc++;
+                            }
+                        } break;
+
                     case JMPIEM: // If RC = 0 then PC <- k else PC++
-                        if (reg[ir.rb] == 0) {
-                            pc = m[ir.p].p;
-                        } else {
-                            pc++;
-                        }
-                        break;
+                        fis = traduz(ir.p);                 // [T1A] antes não validava o endereço
+                        if (fis >= 0) {                     // [T1A]
+                            if (reg[ir.rb] == 0) {
+                                pc = m[fis].p;              // [T1A]
+                            } else {
+                                pc++;
+                            }
+                        } break;
+                        
                     case JMPIGT: // If RS>RC then PC <- k else PC++
                         if (reg[ir.ra] > reg[ir.rb]) {
                             pc = ir.p;

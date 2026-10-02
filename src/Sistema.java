@@ -32,7 +32,7 @@ public class Sistema {
     public Programs progs;
 
     public Sistema(int tamMem, int tamPg) { // [T1A] recebe tamanho de página
-        hw = new HW(tamMem, tamPg);           // memoria do HW tem tamMem palavras
+        hw = new HW(tamMem, tamPg);    // memoria do HW tem tamMem palavras  // [T1A] repassa tamPg para o HW
         so = new SO(hw, tamPg);        // [T1A] repassa tamanho de página para o SO
         hw.cpu.setUtilities(so.utils); // permite cpu fazer dump de memoria ao avancar
         progs = new Programs();

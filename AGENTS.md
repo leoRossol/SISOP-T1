@@ -92,7 +92,10 @@ Requisitos do enunciado:
 - [x] `GM`: construtor, `aloca` `desaloca`
 - [x] Parametrizar `tamPg` (`Sistema`, `SO`) e criar o `GM` no `SO`
 - [x] Carga paginada em `Utilities.loadProgram` (devolve a tabela de páginas; `loadAndExec` guarda ela, mas a CPU ainda não usa)
-- [ ] Tradução na `CPU`: método `traduz(endLogico)` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM` e na syscall de escrita. O `pc` continua **lógico**. `setContext` passa a receber a tabela de páginas.
+- [x] `CPU` recebe `tamPg` no construtor e a tabela de páginas no `setContext(pc, tabela)`; método `traduz(endLogico)` criado (commit `71a74db`)
+- [x] Tradução na `CPU`: `traduz` usado no fetch, `LDD`, `STD`, `LDX`, `STX`, `JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM`. O `pc` continua **lógico** (jumps que não leem memória não mudam).
+- [ ] Tradução na syscall de escrita (`SysCallHandling.handle`, lê `hw.mem.pos[reg[9]]` direto)
+- [ ] Remover `legal()` da `CPU` (ficou sem uso)
 - [ ] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16)
 
 #### Decisões e observações
@@ -103,6 +106,10 @@ Requisitos do enunciado:
 - `GM.aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
 - O professor autorizou separar o código em vários arquivos/pacotes.
 - `tamPg` desce pelos construtores: `main` → `Sistema(tamMem, tamPg)` → `SO(hw, tamPg)` → `GM`. A `Utilities` recebe o `GM` e lê o tamanho com `gm.getTamPg()`.
+- `tamPg` também chega à CPU pelo construtor: `Sistema` → `HW(tamMem, tamPg)` → `CPU(mem, tamPg, debug)`. Escolhido o construtor (e não o `setContext`) porque o tamanho da página é do hardware, igual para todos os processos.
+- O código do grupo na `CPU` fica num bloco no topo da classe (`tabelaPaginas`, `tamPg`, `setContext`, `traduz`), para facilitar a apresentação. O `setContext(int)` antigo foi removido.
+- Na `CPU`, cada acesso à memória segue o padrão `fis = traduz(end); if (fis >= 0) { ... m[fis] ... }`. A variável `fis` é declarada no fetch e reaproveitada nos `case`. `JMPIM`, `JMPILM` e `JMPIEM` ganharam validação que não tinham.
+- `traduz` devolve o endereço físico, ou liga `intEnderecoInvalido` e devolve `-1` (endereço negativo ou `pagina >= tabelaPaginas.length`).
 - **Atenção:** enquanto a tradução na CPU não estiver feita, a CPU ainda acessa endereços físicos direto. Os programas só rodam certo porque, com a memória vazia, o GM entrega os frames 0, 1, 2... em ordem. Com frames fora de ordem, vão quebrar — isso é esperado até a etapa de tradução.
 
 ---

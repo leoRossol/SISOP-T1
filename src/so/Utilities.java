@@ -72,7 +72,7 @@ public class Utilities {
         int[] tabela = loadProgram(p); // [T1A] carga paginada; guarda a tabela de páginas
         System.out.println("---------------------------------- programa carregado na memoria");
         dump(0, p.length); // dump da memoria nestas posicoes
-        hw.cpu.setContext(0, tabela); // seta pc para endereço 0 - ponto de entrada dos programas
+        hw.cpu.setContext(0, tabela); // seta pc para endereço 0 - ponto de entrada dos programas  // [T1A] passa a tabela de páginas para a CPU
         System.out.println("---------------------------------- inicia execucao ");
         hw.cpu.run(); // cpu roda programa ate parar
         System.out.println("---------------------------------- memoria após execucao ");
