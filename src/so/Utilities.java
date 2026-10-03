@@ -20,7 +20,7 @@ public class Utilities {
 
     // [T1A] carga paginada: aloca frames no GM e copia cada pagina para o seu frame
     // devolve tabela de paginas, ou null se nao houver memoria
-    private int[] loadProgram(Word[] p) {
+    public int[] loadProgram(Word[] p) {
         Word[] m = hw.mem.pos; // m[] é o array de posições memória do hw
         int tamPg = gm.getTamPg();
 

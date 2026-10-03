@@ -21,7 +21,9 @@
 import hardware.HW;
 import programas.Programs;
 import so.SO;
-
+import so.PCB;
+import so.GP;
+import so.GM;
 public class Sistema {
 
     // ------------------- S I S T E M A
@@ -40,8 +42,41 @@ public class Sistema {
 
     public void run() {
 
-        so.utils.loadAndExec(progs.retrieveProgram("fatorialV2"));
+        //so.utils.loadAndExec(progs.retrieveProgram("fatorialV2"));
 
+        so.gp.criaProcesso(progs.retrieveProgram("fatorialV2"));
+        so.gp.criaProcesso(progs.retrieveProgram("fibonacci10"));
+
+        so.gp.mostraProcessos();
+
+        so.gp.desalocaProcesso(0);
+
+        System.out.println("Depois de remover o processo 0:");
+        so.gp.mostraProcessos();
+}
+        
+/* 
+        boolean criou = so.gp.criaProcesso(
+            progs.retrieveProgram("fatorialV2")
+        );
+
+        System.out.println("Processo criado: " + criou);
+
+        PCB encontrado = so.gp.buscarProcesso(0);
+        System.out.println("Processo 0 encontrado: " + (encontrado != null));
+
+        PCB inexistente = so.gp.buscarProcesso(99);
+        System.out.println("Processo 99 encontrado: " + (inexistente != null));
+
+        boolean removeu = so.gp.desalocaProcesso(0);
+        System.out.println("Processo 0 removido: " + removeu);
+
+        PCB depoisDaRemocao = so.gp.buscarProcesso(0);
+        System.out.println("Processo 0 ainda existe: " + (depoisDaRemocao != null));
+
+        boolean removeuNovamente = so.gp.desalocaProcesso(0);
+        System.out.println("Remoção repetida: " + removeuNovamente);
+*/
         // so.utils.loadAndExec(progs.retrieveProgram("fatorial"));
         // fibonacci10,
         // fibonacci10v2,
@@ -50,7 +85,7 @@ public class Sistema {
         // fibonacciREAD, // entrada
         // PB
         // PC, // bubble sort
-    }
+        
     // ------------------- S I S T E M A - fim
     // --------------------------------------------------------------
 
