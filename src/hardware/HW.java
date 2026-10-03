@@ -7,6 +7,6 @@ public class HW {
 
     public HW(int tamMem, int _tamPg) {     // [T1A] recebe tamanho de página
         mem = new Memory(tamMem);
-        cpu = new CPU(mem, _tamPg, true); // true liga debug  // [T1A] repassa tamPg para a CPU
+        cpu = new CPU(mem, _tamPg, false); // false: começa sem trace  // [T1A] repassa tamPg para a CPU  // [T1B] antes true; agora o shell liga com traceOn
     }
 }

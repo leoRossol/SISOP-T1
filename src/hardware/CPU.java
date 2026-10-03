@@ -98,6 +98,10 @@ public class CPU {
         u = _u;                     // aponta para rotinas utilitárias - fazer dump da memória na tela
     }
 
+    public void setDebug(boolean _debug) { // [T1B] liga/desliga o trace (comandos traceOn/traceOff do shell)
+        debug = _debug;
+    }
+
 
     // [T1A] legal() removido: 
     // substituído por traduz(), que também valida as páginas do processo

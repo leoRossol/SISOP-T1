@@ -4,6 +4,7 @@ package so;
 import hardware.HW;
 import hardware.Word;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class GP {
@@ -132,6 +133,35 @@ public class GP {
     }
 
 
+    public boolean dumpProcesso(int id) {
+        // 1- buscar o PCB
+        PCB pcb = buscarProcesso(id);
+        if (pcb == null){
+            System.out.println("Processo com id: " +id +" nao encontrado");
+            return false;
+        }
+
+        // 2- imprimir os dados do PCB
+        System.out.println("id: " +pcb.getId());
+        System.out.println("estado: " +pcb.getEstado());
+        System.out.println("pc: " +pcb.getPc());
+        System.out.println("tamanho: " +pcb.getTamanhoPrograma());
+        System.out.println("tabela de paginas: " + Arrays.toString(pcb.getTabelaPaginas()));
+        System.out.println("registradores: " + Arrays.toString(pcb.getReg()));
+
+        // 3- imprimir a memória do processo página por página
+        int[] tabela = pcb.getTabelaPaginas();
+        int tamPg = gm.getTamPg();
+        for (int i = 0; i < tabela.length; i++) {
+            int frame = tabela[i];
+            int inicio = frame * tamPg;
+            int fim = inicio + tamPg;
+            System.out.println("pagina " + i + " -> frame " + frame);
+            utils.dump(inicio, fim);
+        }
+
+        return true;
+    }
 
     public List<PCB> getProcessos() { return processos; }
     public int getUltimoId() { return proximoId - 1;}

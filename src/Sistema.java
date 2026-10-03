@@ -21,7 +21,7 @@
 import hardware.HW;
 import programas.Programs;
 import so.SO;
-import so.PCB;
+import so.Shell;               // [T1B]
 import so.GP;
 import so.GM;
 public class Sistema {
@@ -41,19 +41,9 @@ public class Sistema {
     }
 
     public void run() {
-
-        //so.utils.loadAndExec(progs.retrieveProgram("fatorialV2"));
-
-        so.gp.criaProcesso(progs.retrieveProgram("fatorialV2"));
-        so.gp.criaProcesso(progs.retrieveProgram("fibonacci10"));
-
-        so.gp.mostraProcessos();
-
-        so.gp.desalocaProcesso(0);
-
-        System.out.println("Depois de remover o processo 0:");
-        so.gp.mostraProcessos();
-}
+        // [T1B] o sistema agora é interativo: o shell lê comandos até "exit"
+        new Shell(so, hw, progs).run();
+    }
         
 /* 
         boolean criou = so.gp.criaProcesso(

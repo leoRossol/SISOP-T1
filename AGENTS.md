@@ -73,7 +73,7 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T1B** (iniciada em 03/10)
+**Fase atual: T1B** (concluída em 03/10; a próxima é a T1C)
 
 ### Prazo e plano
 
@@ -142,7 +142,7 @@ Requisitos do enunciado:
 
 ---
 
-### T1B — Gerente de Processos (em andamento)
+### T1B — Gerente de Processos (concluída)
 
 Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - **GP** (módulo do SO):
@@ -163,9 +163,10 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - [x] Implementar listagem básica de processos (`mostraProcessos`)
 - [x] Testar criação, busca, listagem e remoção de processos
 - [x] `GP.getUltimoId()` para o comando `new` mostrar o id criado
-- [x] Integrar execução de processo por ID (`GP.executaProcesso(id)`, testado pelo agente fora do repo em 03/10)
-- [ ] Implementar comandos `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff` e `exit`
-- [ ] Testar memória insuficiente, múltiplos processos e reutilização de frames
+- [x] Integrar execução de processo por ID (`GP.executaProcesso(id)`)
+- [x] `Shell` com `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff`, `exit` (+ `help`, `progs`); `CPU.setDebug`
+- [x] `GP.dumpProcesso(id)`: dados do PCB (`Arrays.toString` para tabela e registradores) + memória página por página (`frame = tabela[i]`, `utils.dump(frame*tamPg, frame*tamPg + tamPg)`)
+- [x] Testar memória insuficiente, múltiplos processos e reutilização de frames (agente, fora do repo, 03/10)
 
 #### Decisões e observações
 
@@ -184,7 +185,14 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - Registradores são copiados **posição por posição** (PCB → CPU e CPU → PCB), nunca `cpu.reg = pcb.getReg()`: arrays em Java são referências, e na T1C dois PCBs acabariam dividindo o mesmo array.
 - Estado `TERMINADO` adicionado ao `EstadoProcesso`. O processo terminado continua na lista `processos` (com a memória) até o `rm`, para o `dump <id>` mostrar o resultado. `exec` num processo terminado é recusado (senão a CPU continuaria depois do `STOP`).
 - Teste (03/10, memória 1024, `tamPg` 8): fatorialV2 (id 0) e fibonacci10 (id 1); `exec 1` → `TERMINADO`, PC 16, série 0..55 gravada nos frames 3–6; `exec 1` de novo e `exec 7` recusados; `exec 0` → `TERMINADO`, PC 17. O `pc` salvo é o endereço do `STOP`/syscall onde a CPU parou.
-- Próximo passo: o shell interativo (comandos `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff`, `exit`).
+- **Shell** (`so/Shell.java`, escrito pelo agente): `Sistema.run()` só faz `new Shell(so, hw, progs).run()`. O shell lê linhas com `Scanner`, separa com `split("\\s+")` e cada comando só chama métodos do `GP`/`Utilities`/`CPU`; não tem lógica de SO. Valida número de argumentos, número inválido (`exec abc`) e intervalo do `dumpM` (`0 <= ini < fim <= tamMem`, fim exclusivo).
+- **Pegadinha do professor:** `Programs.retrieveProgram` compara nomes com `==` (referência). Com texto digitado no teclado isso sempre dá `null`. Como `Programs.java` não pode ser alterado, o shell usa `partes[1].intern()`, que devolve o mesmo objeto `String` do literal. (Pergunta provável: por que `intern()`?)
+- `CPU.setDebug(boolean)` criado; o `HW` agora cria a CPU com `debug = false` (antes `true`), e o trace só aparece com `traceOn`.
+- Teste do shell (03/10): `new`/`ps`/`exec`/`dump`/`dumpM`/`rm`/`traceOn`/`traceOff`, programa inexistente, falta de argumento, id inexistente e comando desconhecido ok. O `new progMinimo` depois de `rm 1` reaproveitou os frames liberados (o trace mostra escrita no físico 40).
+- `dumpProcesso` testado no shell (03/10): `new fatorial` + `exec 0` + `dump 0` mostra 5040 (7!) no endereço 10; `dump` do fibonacci10 mostra a série nos frames certos. Os programas não imprimem nada: o resultado fica na memória, e por isso o `exec` só mostra `SYSCALL STOP` (com trace desligado). Na apresentação: `exec` → `dump`.
+- Teste de memória cheia (03/10, `Sistema(64, 8)` = 8 frames, numa cópia fora do repo): 2× `new fibonacci10` ocupa os 8 frames; `new fatorial` falha ("sem memoria") e **não gasta id**; `rm 0` libera os frames 0–3 e dois `new fatorial` reaproveitam os frames 0–1 e 2–3; `exec` e `dump` corretos nos frames reaproveitados (5040 e a série). `PB` termina com `intEnderecoInvalido` (pc 1), fica `TERMINADO` e o shell continua; `PC` (54 palavras) não cabe junto com outro processo. Nenhum bug no código do grupo.
+- Detalhe cosmético: quando não há memória aparecem duas mensagens (a da `Utilities.loadProgram` e a do shell).
+- **T1B concluída em 03/10.** Próximo: manual de apresentação (estudante) e depois a T1C.
 
 ---
 
