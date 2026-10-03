@@ -73,7 +73,7 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T1A** (concluída em 02/10; a próxima é a T1B)
+**Fase atual: T1B** (iniciada em 03/10)
 
 ### Prazo e plano
 
@@ -142,7 +142,7 @@ Requisitos do enunciado:
 
 ---
 
-### T1B — Gerente de Processos (ainda não iniciado)
+### T1B — Gerente de Processos (em andamento)
 
 Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - **GP** (módulo do SO):
@@ -153,11 +153,29 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 
 #### Checklist
 
-- [ ] (montar quando a fase começar, junto com o estudante)
+- [x] Criar `PCB` com id, PC, registradores, tabela de páginas, tamanho e estado
+- [x] Criar `EstadoProcesso` com `PRONTO`, `RODANDO` e `BLOQUEADO`
+- [x] Tornar `Utilities.loadProgram` público para permitir carga sem execução
+- [x] Criar estrutura inicial do `GP` com processos, prontos, rodando e contador de IDs
+- [x] Implementar `GP.criaProcesso(programa)`
+- [x] Implementar busca de processo por ID
+- [x] Implementar `GP.desalocaProcesso(id)` com liberação de memória
+- [x] Implementar listagem básica de processos (`mostraProcessos`)
+- [x] Testar criação, busca, listagem e remoção de processos
+- [ ] Integrar execução de processo por ID
+- [ ] Implementar comandos `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff` e `exit`
+- [ ] Testar memória insuficiente, múltiplos processos e reutilização de frames
 
 #### Decisões e observações
 
-- (nenhuma ainda)
+- O `PCB` guarda o contexto necessário para o processo: id, PC, registradores, tabela de páginas, tamanho do programa e estado.
+- O estado `BLOQUEADO` foi incluído para representar processos que aguardam E/S ou outro evento; na T1B, os estados usados no fluxo básico são `PRONTO` e `RODANDO`.
+- `GP.criaProcesso` carrega o programa pela `Utilities`, cria registradores zerados, cria o PCB como `PRONTO` e coloca o PCB nas listas de processos e prontos. A CPU não é executada nesse momento.
+- `GP.desalocaProcesso` remove o PCB das listas e chama `GM.desaloca` para liberar os frames. IDs removidos não são reutilizados, pois `proximoId` apenas cresce.
+- O método de listagem atual mostra id, estado e PC; ainda não existe shell interativo.
+- A criação, busca, listagem e remoção foram testadas em `Sistema`, com compilação via `javac` sem erros.
+- Commit de referência: `573245b` (`T1B iniciado e testado`), enviado ao remoto.
+- Próximo passo: implementar a execução de um processo por ID, transferindo o contexto do PCB para a CPU e salvando o contexto ao final.
 
 ---
 
