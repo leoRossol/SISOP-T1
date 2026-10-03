@@ -8,7 +8,7 @@ public class SO {
     public SysCallHandling sc;
     public Utilities utils;
     public GM gm;                         // [T1A] gerente de memória
-    public GP gp;
+    public GP gp;                         // [T1B] gerente de processos
 
     public SO(HW hw, int tamPg) {         // [T1A] recebe tamanho de página
         ih = new InterruptHandling(hw); // rotinas de tratamento de int
@@ -17,6 +17,6 @@ public class SO {
         
         gm = new GM(hw.mem.pos.length, tamPg); // [T1A] cria o GM
         utils = new Utilities(hw, gm);         // [T1A] Utilities recebe o GM para fazer a carga
-        gp = new GP(gm, utils);
+        gp = new GP(gm, utils, hw);                // [T1B] cria o GP
     }
 }

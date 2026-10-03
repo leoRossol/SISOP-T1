@@ -162,7 +162,8 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - [x] Implementar `GP.desalocaProcesso(id)` com liberação de memória
 - [x] Implementar listagem básica de processos (`mostraProcessos`)
 - [x] Testar criação, busca, listagem e remoção de processos
-- [ ] Integrar execução de processo por ID
+- [x] `GP.getUltimoId()` para o comando `new` mostrar o id criado
+- [x] Integrar execução de processo por ID (`GP.executaProcesso(id)`, testado pelo agente fora do repo em 03/10)
 - [ ] Implementar comandos `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff` e `exit`
 - [ ] Testar memória insuficiente, múltiplos processos e reutilização de frames
 
@@ -173,9 +174,17 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 - `GP.criaProcesso` carrega o programa pela `Utilities`, cria registradores zerados, cria o PCB como `PRONTO` e coloca o PCB nas listas de processos e prontos. A CPU não é executada nesse momento.
 - `GP.desalocaProcesso` remove o PCB das listas e chama `GM.desaloca` para liberar os frames. IDs removidos não são reutilizados, pois `proximoId` apenas cresce.
 - O método de listagem atual mostra id, estado e PC; ainda não existe shell interativo.
+- `criaProcesso` continua devolvendo `boolean` (como no enunciado). Para o `new` mostrar o id, foi criado `getUltimoId()` (`proximoId - 1`; `-1` se nenhum processo foi criado). O shell só deve chamá-lo quando `criaProcesso` devolver `true`. Getter em vez de `proximoId` público para ninguém de fora alterar o contador.
+- Marcações `[T1B]` adicionadas em `GP`, `PCB`, `EstadoProcesso`, `SO` e `Utilities` (03/10).
+- A `CPU` não tem `setDebug`: `debug` é `private` e só é definido no construtor (`HW` passa `true`). Os comandos `traceOn`/`traceOff` vão precisar de um `setDebug(boolean)`.
 - A criação, busca, listagem e remoção foram testadas em `Sistema`, com compilação via `javac` sem erros.
 - Commit de referência: `573245b` (`T1B iniciado e testado`), enviado ao remoto.
-- Próximo passo: implementar a execução de um processo por ID, transferindo o contexto do PCB para a CPU e salvando o contexto ao final.
+- `GP` recebe o `HW` pelo construtor (`GP(gm, utils, hw)`), como `InterruptHandling`/`SysCallHandling`, e não por parâmetro do `executaProcesso`: o hardware não muda, o shell só conhece o id, e na T1C outros pontos (relógio, `STOP`) vão precisar da CPU.
+- `executaProcesso(id)`: busca o PCB (avisa e devolve `false` se não existe ou se está `TERMINADO`) → `rodando = pcb`, estado `RODANDO`, sai de `prontos` → restaura contexto (`setContext(pcb.getPc(), tabela)` + cópia dos registradores) → `cpu.run()` → salva contexto (`setPc(cpu.pc)` + cópia dos registradores) → `rodando = null`, estado `TERMINADO`.
+- Registradores são copiados **posição por posição** (PCB → CPU e CPU → PCB), nunca `cpu.reg = pcb.getReg()`: arrays em Java são referências, e na T1C dois PCBs acabariam dividindo o mesmo array.
+- Estado `TERMINADO` adicionado ao `EstadoProcesso`. O processo terminado continua na lista `processos` (com a memória) até o `rm`, para o `dump <id>` mostrar o resultado. `exec` num processo terminado é recusado (senão a CPU continuaria depois do `STOP`).
+- Teste (03/10, memória 1024, `tamPg` 8): fatorialV2 (id 0) e fibonacci10 (id 1); `exec 1` → `TERMINADO`, PC 16, série 0..55 gravada nos frames 3–6; `exec 1` de novo e `exec 7` recusados; `exec 0` → `TERMINADO`, PC 17. O `pc` salvo é o endereço do `STOP`/syscall onde a CPU parou.
+- Próximo passo: o shell interativo (comandos `new`, `rm`, `ps`, `dump`, `dumpM`, `exec`, `traceOn`, `traceOff`, `exit`).
 
 ---
 
