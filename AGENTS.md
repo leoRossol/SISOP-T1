@@ -73,7 +73,13 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T1A**
+**Fase atual: T1A** (concluída em 02/10; a próxima é a T1B)
+
+### Prazo e plano
+
+- **Apresentação:** todas as fases (T1A+B+C) na quinta, 08/10/2026.
+- **Plano:** T1A até sex 02/10 · T1B sáb–dom · T1C seg–ter · revisão para a apresentação na qua.
+- **Divisão do trabalho (para caber no prazo):** o estudante escreve a lógica central (PCB, GP, troca de contexto, escalonador); o agente escreve as partes mecânicas (testes, parsing do shell, comandos de dump/ps, esqueleto de threads) e explica o que fez.
 
 ---
 
@@ -97,24 +103,42 @@ Requisitos do enunciado:
 - [x] Tradução na syscall de escrita (`traduz` virou `public` para a `SysCallHandling` usar)
 - [x] Remover `legal()` da `CPU` (ficou sem uso)
 - [x] `loadAndExec`: se `loadProgram` devolver `null` (não coube), não executa
-- [ ] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16)
+- [x] Testes: vários programas carregados ao mesmo tempo, frames **não contíguos**, vários `tamPg` (4, 8, 10, 16), memória pequena, `tamMem` não divisível. Verificação feita pelo agente fora do repositório em 02/10 (299 checagens ok); nenhum bug no código do grupo.
 
 #### Decisões e observações
 
-- `PB` (tamanho 16, acessa endereço 50) e `PC` (tamanho 54, acessa 99) escrevem fora da própria área. Com proteção de memória, vão gerar endereço inválido. Isso está correto, mas **deve ser confirmado com o professor** (pendente).
-- `JMPIM`, `JMPILM` e `JMPIEM` não validam endereço no código original. A tradução deve corrigir isso.
-- Não criar `PCB`, gerente de processos nem escalonador nesta fase. A tabela de páginas pode ser passada direto para a CPU.
-- **Prazo:** apresentação de todas as fases (T1A+B+C) na quinta, 08/10/2026. Plano: T1A até sex 02/10, T1B sáb–dom, T1C seg–ter, revisão qua. Para caber no prazo, o agente escreve as partes mecânicas (testes, parsing do shell, comandos de dump/ps, esqueleto de threads) e o estudante escreve a lógica central (PCB, GP, troca de contexto, escalonador).
-- `GM.aloca` devolve `int[]` (ou `null`) em vez do `boolean aloca(int, OUT int[])` sugerido no enunciado, porque Java não tem parâmetro de saída. Saber justificar na apresentação.
-- A proteção é por página: acessos às sobras da última página (ex.: endereço 21 no fatorial de 20 palavras com `tamPg` 8) são aceitos. É fragmentação interna, comportamento normal da paginação.
-- `GM.aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
+**Organização do código**
 - O professor autorizou separar o código em vários arquivos/pacotes.
-- `tamPg` desce pelos construtores: `main` → `Sistema(tamMem, tamPg)` → `SO(hw, tamPg)` → `GM`. A `Utilities` recebe o `GM` e lê o tamanho com `gm.getTamPg()`.
-- `tamPg` também chega à CPU pelo construtor: `Sistema` → `HW(tamMem, tamPg)` → `CPU(mem, tamPg, debug)`. Escolhido o construtor (e não o `setContext`) porque o tamanho da página é do hardware, igual para todos os processos.
-- O código do grupo na `CPU` fica num bloco no topo da classe (`tabelaPaginas`, `tamPg`, `setContext`, `traduz`), para facilitar a apresentação. O `setContext(int)` antigo foi removido.
-- Na `CPU`, cada acesso à memória segue o padrão `fis = traduz(end); if (fis >= 0) { ... m[fis] ... }`. A variável `fis` é declarada no fetch e reaproveitada nos `case`. `JMPIM`, `JMPILM` e `JMPIEM` ganharam validação que não tinham.
-- `traduz` devolve o endereço físico, ou liga `intEnderecoInvalido` e devolve `-1` (endereço negativo ou `pagina >= tabelaPaginas.length`).
-- **Atenção:** enquanto a tradução na CPU não estiver feita, a CPU ainda acessa endereços físicos direto. Os programas só rodam certo porque, com a memória vazia, o GM entrega os frames 0, 1, 2... em ordem. Com frames fora de ordem, vão quebrar — isso é esperado até a etapa de tradução.
+- Não criar `PCB`, gerente de processos nem escalonador nesta fase. A tabela de páginas é passada direto para a CPU.
+- O código do grupo na `CPU` fica num bloco no topo da classe (`tabelaPaginas`, `tamPg`, `setContext`, `traduz`), para facilitar a apresentação.
+
+**Gerente de Memória (`GM`)**
+- `aloca` usa os primeiros frames livres encontrados; devolve `null` sem alterar nada quando não há frames suficientes.
+- `aloca` devolve `int[]` (ou `null`) em vez do `boolean aloca(int, OUT int[])` sugerido no enunciado, porque Java não tem parâmetro de saída.
+
+**Como o `tamPg` e a tabela chegam onde são usados**
+- `tamPg` desce pelos construtores até o `GM`: `main` → `Sistema(tamMem, tamPg)` → `SO(hw, tamPg)` → `GM`. A `Utilities` recebe o `GM` e lê o tamanho com `gm.getTamPg()`.
+- `tamPg` chega à CPU também pelo construtor: `Sistema` → `HW(tamMem, tamPg)` → `CPU(mem, tamPg, debug)`. Foi escolhido o construtor (e não o `setContext`) porque o tamanho da página é do hardware, igual para todos os processos.
+- A tabela de páginas chega à CPU pelo `setContext(pc, tabela)`, chamado no `loadAndExec`. O `setContext(int)` antigo foi removido.
+- Se o programa não couber, `loadProgram` devolve `null` e o `loadAndExec` não executa.
+
+**Tradução na CPU**
+- `traduz` devolve o endereço físico, ou liga `intEnderecoInvalido` e devolve `-1` (endereço negativo ou `pagina >= tabelaPaginas.length`). É `public` porque a syscall de escrita (`SysCallHandling`) também usa.
+- Cada acesso à memória segue o padrão `fis = traduz(end); if (fis >= 0) { ... m[fis] ... }`. A variável `fis` é declarada no fetch e reaproveitada nos `case`.
+- Só os jumps que **leem a memória** (`JMPIM`, `JMPIGM`, `JMPILM`, `JMPIEM`) traduzem; o valor lido vai para o `pc` sem traduzir, porque o `pc` é lógico. `JMPIM`, `JMPILM` e `JMPIEM` não validavam endereço no código original e agora validam.
+- `legal()` foi removido: o `traduz` faz a mesma checagem, só que mais restrita (páginas do processo, e não a memória inteira).
+- A proteção é por página: acessos às sobras da última página (ex.: endereço 21 no fatorial de 20 palavras com `tamPg` 8) são aceitos. É fragmentação interna, comportamento normal da paginação.
+
+**Programas do professor que acessam fora da própria área** (⏳ confirmar com o professor)
+- `PB` (16 palavras, acessa o endereço 50) e `PC` (54 palavras, acessa 96–99) geram `intEnderecoInvalido`. O sistema está certo ao barrar.
+- `fibonacci10` tem 30 palavras (0..29), mas o último `STX` escreve no endereço 30. Com `tamPg` 4, 8 ou 16 isso cai na sobra da última página e passa; com `tamPg` 10 (3 páginas exatas) gera `intEnderecoInvalido` depois de gravar a série. Os resultados (posições 20..29) ficam certos.
+
+**Perguntas prováveis na apresentação**
+- Por que `aloca` devolve `int[]` e não `boolean`? → Java não tem parâmetro de saída; `null` faz o papel do `false`.
+- Por que o `tamPg` vem pelo construtor da CPU? → é característica do hardware, não do processo.
+- Por que não reaproveitar o `legal()`? → um método devolve uma coisa só; precisamos de "é válido?" **e** do endereço físico. O `traduz` responde as duas (`-1` = inválido).
+- Por que só os jumps `...M` mudaram? → só eles leem a memória; os outros põem no `pc` um número que já é lógico.
+- Por que o endereço 21 do fatorial é aceito? → proteção por página (fragmentação interna).
 
 ---
 
