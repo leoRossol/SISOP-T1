@@ -11,11 +11,43 @@ public class Shell {
     private SO so;
     private HW hw;
     private Programs progs;
+    private EscalonadorThread escalonadorThread;
 
     public Shell(SO _so, HW _hw, Programs _progs) {
         so = _so;
         hw = _hw;
         progs = _progs;
+        escalonadorThread = null;
+    }
+
+    private void iniciarEscalonador() {
+        if (escalonadorThread != null && escalonadorThread.isAlive()) {
+            System.out.println("Escalonador já está ativo.");
+            return;
+        }
+
+        escalonadorThread = new EscalonadorThread(so.gp, hw);
+        escalonadorThread.start();
+
+        System.out.println("Escalonador iniciado.");
+    }
+
+    private void pararEscalonador() {
+        if (escalonadorThread == null || !escalonadorThread.isAlive()) {
+            System.out.println("Escalonador não está ativo.");
+            return;
+        }
+
+        escalonadorThread.pararThread();
+
+        try {
+            escalonadorThread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        escalonadorThread = null;
+        System.out.println("Escalonador parado.");
     }
 
     // loop principal: mostra o prompt, lê uma linha, executa o comando, até "exit"
@@ -32,7 +64,10 @@ public class Shell {
             String[] partes = linha.split("\\s+");     // separa por espaços: "exec 1" -> ["exec", "1"]
             String comando = partes[0];
 
-            if (comando.equals("exit")) { break; }
+            if (comando.equals("exit")) {
+                pararEscalonador();
+                break;
+}
             executaComando(comando, partes);
         }
         System.out.println("Fim do shell.");
@@ -61,7 +96,9 @@ public class Shell {
                 if (so.gp.desalocaProcesso(idRm)) {
                     System.out.println("Processo " + idRm + " removido.");
                 } else {
-                    System.out.println("Processo com id: " + idRm + " nao encontrado");
+                    System.out.println(
+                            "Processo com id: " + idRm
+                                    + " nao encontrado ou nao pode ser removido agora.");
                 }
                 break;
 
@@ -110,6 +147,14 @@ public class Shell {
                 System.out.println("execAll: todos os processos terminaram");
                 break;
 
+            case "start":
+                iniciarEscalonador();
+                break;
+
+            case "stop":
+                pararEscalonador();
+                break;
+
             case "traceOn":
                 hw.cpu.setDebug(true);
                 System.out.println("Trace ligado.");
@@ -137,6 +182,8 @@ public class Shell {
                 System.out.println("  dumpM <inicio> <fim>  mostra a memoria fisica [inicio, fim)");
                 System.out.println("  exec <id>             executa so o processo <id> ate o fim (sem escalonar)"); // [T1C]
                 System.out.println("  execAll               executa todos os processos em round robin"); // [T1C]
+                System.out.println("  start                 inicia a thread do escalonador");
+                System.out.println("  stop                  para a thread do escalonador");
                 System.out.println("  traceOn / traceOff    liga/desliga o trace da CPU");
                 System.out.println("  progs                 lista os programas disponiveis");
                 System.out.println("  exit                  sai");

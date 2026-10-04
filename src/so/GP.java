@@ -7,6 +7,7 @@ import hardware.Word;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class GP {
     private GM gm;
@@ -17,7 +18,8 @@ public class GP {
     private int proximoId;
     private HW hw;
     private boolean execUnico; // [T1C] true = exec <id> (roda só um processo, sem preempção)
-
+    private Semaphore mutex;
+    private Semaphore processosDisponiveis;
 
     public GP(GM _gm, Utilities _utils, HW _hw) {
         gm = _gm;
@@ -28,6 +30,9 @@ public class GP {
         rodando = null;
         proximoId = 0;
         execUnico = false; // [T1C] começa no modo escalonado (execAll)
+
+        mutex = new Semaphore(1, true);
+        processosDisponiveis = new Semaphore(0);
     }
 
     // =====================================================================
@@ -37,27 +42,47 @@ public class GP {
     public boolean criaProcesso(Word[] programa) {
         if (programa == null) {
             return false;
-        } // verifica se o programa é válido
+        }
 
-        int[] tabela = utils.loadProgram(programa);
-        if (tabela == null) {
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
-        } // se não houver memória, loadProgram retorna null
+        }
 
-        int[] reg = new int[10];
-        PCB pcb = new PCB(
-                proximoId,
-                0,
-                reg,
-                tabela,
-                programa.length,
-                EstadoProcesso.PRONTO);
+        boolean criou = false;
 
-        processos.add(pcb);
-        prontos.add(pcb);
-        proximoId++;
+        try {
+            int[] tabela = utils.loadProgram(programa);
 
-        return true;
+            if (tabela == null) {
+                return false;
+            }
+
+            int[] reg = new int[10];
+
+            PCB pcb = new PCB(
+                    proximoId,
+                    0,
+                    reg,
+                    tabela,
+                    programa.length,
+                    EstadoProcesso.PRONTO);
+
+            processos.add(pcb);
+            prontos.add(pcb);
+            proximoId++;
+
+            criou = true;
+            return true;
+        } finally {
+            mutex.release();
+
+            if (criou && processosDisponiveis.availablePermits() ==0) {
+                processosDisponiveis.release();
+            }
+        }
     }
 
     public PCB buscarProcesso(int id) {
@@ -69,34 +94,73 @@ public class GP {
         return null;
     }
 
-    public boolean desalocaProcesso(int id) {
+    private boolean desalocaProcessoInterno(int id) {
         PCB pcb = buscarProcesso(id);
 
         if (pcb == null) {
             return false;
         }
 
-        gm.desaloca(pcb.getTabelaPaginas()); // libera memória alocada ao processo
+        gm.desaloca(pcb.getTabelaPaginas());
         processos.remove(pcb);
         prontos.remove(pcb);
 
         if (rodando == pcb) {
             rodando = null;
-        } // verifica processo rodando
+        }
 
         return true;
     }
 
-    
-    public void mostraProcessos() {
-        System.out.println("ID\tESTADO\t\tPC");
-        for (PCB pcb : processos) {
-            System.out.println(
-                    pcb.getId() + "\t"
-                            + pcb.getEstado() + "\t"
-                            + pcb.getPc());
+    public boolean desalocaProcesso(int id) {
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
 
+        try {
+            PCB pcb = buscarProcesso(id);
+
+            if (pcb == null) {
+                return false;
+            }
+
+            if (pcb == rodando || pcb.getEstado() == EstadoProcesso.RODANDO) {
+                System.out.println(
+                        "Processo " + id
+                                + " esta em execucao e nao pode ser removido agora.");
+                return false;
+            }
+
+            return desalocaProcessoInterno(id);
+        } finally {
+            mutex.release();
+        }
+    }
+
+    
+    public void mostraProcessos() {
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        try {
+            System.out.println("ID\tESTADO\t\tPC");
+
+            for (PCB pcb : processos) {
+                System.out.println(
+                        pcb.getId() + "\t"
+                                + pcb.getEstado() + "\t"
+                                + pcb.getPc());
+            }
+        } finally {
+            mutex.release();
+        }
     }
 
     public boolean executaProcesso(int id) {
@@ -165,8 +229,34 @@ public class GP {
         return true;
     }
 
-    public List<PCB> getProcessos() { return processos; }
-    public int getUltimoId() { return proximoId - 1;}
+    public List<PCB> getProcessos() {
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new ArrayList<>();
+        }
+
+        try {
+            return new ArrayList<>(processos);
+        } finally {
+            mutex.release();
+        }
+    }
+
+    public boolean esperaProcessoDisponivel() {
+        try {
+            processosDisponiveis.acquire();
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+    }
+
+    public int getUltimoId() {
+        return proximoId - 1;
+    }
 
     // =====================================================================
     // [T1C] Escalonamento: troca de contexto e escalonador
@@ -194,8 +284,26 @@ public class GP {
         }
     }
 
-    // escalonador round robin: põe na CPU o primeiro processo da fila de prontos
+    // entrada publica do escalonador q protege o acesso às estruturas compartilhadas
     public void escalona() {
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        try {
+            escalonaInterno();
+        } finally {
+            mutex.release();
+        }
+    }
+
+    // escalonador round robin: põe na CPU o primeiro processo da fila de prontos
+    // sem adquirir mutex
+    // chamador deve possuir mutex
+    private void escalonaInterno() {
             // 1- se prontos estiver vazia para tudo
             //    [T1C] no modo exec também para: só aquele processo roda, os outros ficam PRONTO
         if (prontos.isEmpty() || execUnico){
@@ -215,49 +323,102 @@ public class GP {
     }
 
     // fim da fatia de tempo: processo atual volta para o fim da fila e outro entra
-    public void trocaPorTempo() {
-            // 0- relógio tocou mas o último processo acabou nesta instrucao -> nada a trocar
-        if (rodando == null){
-            return;
+    // Entrada pública da troca de tempo: protege fila e contexto.
+public void trocaPorTempo() {
+    boolean interrompida = false;
+
+    while (true) {
+        try {
+            mutex.acquire();
+            break;
+        } catch (InterruptedException e) {
+            interrompida = true;
         }
-            // [T1C] modo exec: não troca de processo, ele só ganha uma fatia nova.
-            //       salva + restaura o MESMO processo: o setContext zera o irpt e o contador
-            //       (só um return deixaria o intTempo ligado e ele seria tratado em toda instrução)
-        if (execUnico){
-            salvaContexto(rodando);
-            restauraContexto(rodando);
-            return;
-        }
-            // 1- salvar o contexto do processo que está rodando
-        PCB pcb = rodando;
-        salvaContexto(rodando);
-            // 2- estado PRONTO
-        pcb.setEstado(EstadoProcesso.PRONTO);
-            // 3- colocar no fim da fila de prontos
-        prontos.addLast(pcb);
-        System.out.println("ESCALONADOR: fim do slice, sai processo: " +pcb.getId());
-            // 4- chamar o escalonador
-        escalona();
     }
+
+    try {
+        trocaPorTempoInterno();
+    } finally {
+        mutex.release();
+
+        if (interrompida) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+// Troca de tempo sem adquirir o mutex.
+// O chamador deve possuir o mutex.
+private void trocaPorTempoInterno() {
+    // O relógio pode tocar na mesma instrução que finalizou o processo.
+    if (rodando == null) {
+        return;
+    }
+
+    // no modo exec o mesmo processo recebe uma nova fatia
+    if (execUnico) {
+        salvaContexto(rodando);
+        restauraContexto(rodando);
+        return;
+    }
+
+    PCB pcb = rodando;
+
+    salvaContexto(pcb);
+
+    pcb.setEstado(EstadoProcesso.PRONTO);
+    prontos.add(pcb);
+
+    System.out.println(
+            "ESCALONADOR: fim do slice, sai processo: " + pcb.getId());
+
+    escalonaInterno();
+}
 
     // fim do processo que está rodando (STOP ou erro): mostra o resultado, libera e escalona outro
     public void terminaProcesso() {
+        boolean interrompida = false;
+
+        while (true) {
+            try {
+                mutex.acquire();
+                break;
+            } catch (InterruptedException e) {
+                interrompida = true;
+            }
+        }
+        
             // 1- pegar o processo que está rodando
-        PCB pcb = rodando;
+        try {
+            PCB pcb = rodando;
+
+            if(pcb == null){
+                return;
+            }
+        
             // 2- mensagem "ESCALONADOR: processo X terminou"
-        System.out.println("ESCALONADOR: termino do processo: " +pcb.getId());
-            // 3- salva estado final e mostra o dump
-        salvaContexto(pcb);
-        pcb.setEstado(EstadoProcesso.TERMINADO);
-        dumpProcesso(pcb.getId());
-            // 4- liberar memória e PCB
-        desalocaProcesso(pcb.getId());
-            // 5- chamar o escalonador
-        escalona();
+            System.out.println("ESCALONADOR: termino do processo: " +pcb.getId());
+            
+                // 3- salva estado final e mostra o dump
+            salvaContexto(pcb);
+            pcb.setEstado(EstadoProcesso.TERMINADO);
+
+            dumpProcesso(pcb.getId());
+
+                // 4- liberar memória e PCB
+            desalocaProcessoInterno(pcb.getId());
+
+                // 5- chama o escalonador sem tentar adquirir mutex novamente
+            escalonaInterno();
+
+        } finally {
+            mutex.release();
+
+            if(interrompida){
+                Thread.currentThread().interrupt();
+            }
+        }
     }
-
-
-
 
 
 }
