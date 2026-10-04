@@ -109,21 +109,13 @@ public class GP {
         prontos.remove(pcb);
 
         // 3- restaurar o contexto na CPU
-        hw.cpu.setContext(pcb.getPc(), pcb.getTabelaPaginas());
-            //registradores: copiar pcb.getReg() para cpu.reg
-        int[] regsProcesso = pcb.getReg();
-        for (int i=0; i < regsProcesso.length; i++){
-            hw.cpu.reg[i] = regsProcesso[i];
-        }
+        restauraContexto(pcb);
 
         // 4- rodar a CPU
         hw.cpu.run();
 
         // 5- salvar o contexto de volta no PCB (pc e registradores)
-        pcb.setPc(hw.cpu.pc);
-        for (int i=0; i<regsProcesso.length; i++){
-            regsProcesso[i] = hw.cpu.reg[i];
-        }
+        salvaContexto(pcb);
 
         // 6- processo terminou, atualizar estados
         rodando = null;
@@ -132,6 +124,27 @@ public class GP {
         return true;
     }
 
+    // [T1C] coloca na CPU o contexto guardado no PCB (processo entrando na CPU)
+    private void restauraContexto(PCB pcb) {
+        // 1- setContext com o pc e a tabela de páginas do PCB
+        hw.cpu.setContext(pcb.getPc(), pcb.getTabelaPaginas());
+            //registradores: copiar pcb.getReg() para cpu.reg
+        int[] regsProcesso = pcb.getReg();
+        for (int i=0; i < regsProcesso.length; i++){
+            hw.cpu.reg[i] = regsProcesso[i];
+        }
+    }
+
+    // [T1C] guarda no PCB o contexto atual da CPU (processo saindo da CPU)
+    private void salvaContexto(PCB pcb) {
+        // 1- guardar hw.cpu.pc no PCB
+        pcb.setPc(hw.cpu.pc);
+        int[] regsProcesso = pcb.getReg();
+            // registradores: copiar hw.cpu.reg para os registradores do PCB
+        for (int i=0; i<regsProcesso.length; i++){
+            regsProcesso[i] = hw.cpu.reg[i];
+        }
+    }
 
     public boolean dumpProcesso(int id) {
         // 1- buscar o PCB
