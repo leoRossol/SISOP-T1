@@ -22,8 +22,6 @@ import hardware.HW;
 import programas.Programs;
 import so.SO;
 import so.Shell;               // [T1B]
-import so.GP;
-import so.GM;
 public class Sistema {
 
     // ------------------- S I S T E M A
@@ -33,8 +31,8 @@ public class Sistema {
     public SO so;
     public Programs progs;
 
-    public Sistema(int tamMem, int tamPg) { // [T1A] recebe tamanho de página
-        hw = new HW(tamMem, tamPg);    // memoria do HW tem tamMem palavras  // [T1A] repassa tamPg para o HW
+    public Sistema(int tamMem, int tamPg, int delta) { // [T1A] recebe tamanho de página  // [T1C] recebe delta (fatia de tempo)
+        hw = new HW(tamMem, tamPg, delta);    // memoria do HW tem tamMem palavras // [T1A] repassa tamPg para o HW  // [T1C] repassa delta
         so = new SO(hw, tamPg);        // [T1A] repassa tamanho de página para o SO
         hw.cpu.setUtilities(so.utils); // permite cpu fazer dump de memoria ao avancar
         progs = new Programs();
@@ -82,7 +80,7 @@ public class Sistema {
     // -------------------------------------------------------------------------------------------------------
     // ------------------- instancia e testa sistema
     public static void main(String args[]) {
-        Sistema s = new Sistema(1024, 8); // [T1A] memória de 1024 palavras, página de 8
+        Sistema s = new Sistema(1024, 8, 5); // [T1A] memória de 1024 palavras, página de 8  // [T1C] delta = 5 instruções por fatia
         s.run();
     }
 }
