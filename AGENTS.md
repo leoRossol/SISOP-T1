@@ -210,7 +210,7 @@ Enunciado: `enunciados/T1-T1C.pdf`. Requisitos:
 
 Parte 1 — versão sequencial (`execAll`), seguindo a página "Sequencial" do `Esquema.pdf`:
 - [x] **Relógio na CPU** (estudante): `intTempo` no `Interrupts`; `delta` e contador de instruções na `CPU`; a cada `delta` instruções liga `intTempo`; contador zera no `setContext`
-- [ ] **CPU não para em toda interrupção** (estudante): quem decide é a rotina do SO; `CPU` ganha um jeito de parar quando não há mais processos (ex.: `cpu.para()`); `case STOP` deixa de ligar `cpuStop` sozinho
+- [x] **CPU não para em toda interrupção** (estudante): quem decide é a rotina do SO; `CPU` ganha um jeito de parar quando não há mais processos (ex.: `cpu.para()`); `case STOP` deixa de ligar `cpuStop` sozinho
 - [ ] **Troca de contexto no GP** (estudante): separar `salvaContexto(pcb)` e `restauraContexto(pcb)` do código que já existe no `executaProcesso`
 - [ ] **Escalonador** (estudante): `GP.escalona()` tira o primeiro de `prontos`, marca `RODANDO` e restaura o contexto; se `prontos` estiver vazio, `rodando = null` e a CPU para
 - [ ] **Rotina do timer** (estudante): `InterruptHandling` recebe o `GP`; em `intTempo` salva o contexto do `rodando`, põe no fim de `prontos` (`PRONTO`) e chama `escalona()`
@@ -227,7 +227,12 @@ Parte 2 — funcionamento contínuo com threads (página "multithreaded" do `Esq
 - **`delta`** chega pelo construtor, igual ao `tamPg`: `main` → `Sistema(tamMem, tamPg, delta)` → `HW(tamMem, tamPg, delta)` → `CPU(mem, tamPg, delta, debug)`. Valor usado: **5** (exemplo do próprio `Esquema.pdf`). Delta pequeno = muitas trocas (overhead); grande demais = vira FIFO e o escalonamento não aparece.
 - **Relógio** no `run()`, depois do `switch` e antes do "VERIFICA INTERRUPÇÃO": `contadorCiclos++`; se `contadorCiclos >= delta && irpt == noInterrupt`, liga `intTempo`. O `== noInterrupt` impede que o relógio apague uma interrupção de erro da mesma instrução (primeira versão só testava `intEnderecoInvalido` e apagaria `intOverflow`/`intInstrucaoInvalida`). `>=` em vez de `==` cobre `delta <= 0`. O `setContext` zera o contador (processo novo = fatia nova).
 - Teste (03/10, fora do repo): fatorial com delta 5 para com `intTempo` no pc 5 depois de exatamente 5 instruções; PB com delta 2 (erro e fim de fatia na mesma instrução) mantém `intEnderecoInvalido`; fatorial com delta 1000 chega ao `STOP` com 5040.
-- ⏳ Para a Tarefa 2: se o `STOP` cair na última instrução da fatia, hoje aparecem `SYSCALL STOP` e depois `intTempo`. Quando o `STOP` passar a chamar o escalonador (que faz `setContext` e zera o contador), conferir esse caso.
+- **Quem para a CPU é o SO** (Tarefa 2, 03/10): `CPU.para()` (público, faz `cpuStop = true`). Saíram os dois `cpuStop = true` da CPU (no `case STOP` e depois do `ih.handle`). Por enquanto `InterruptHandling.handle` e `SysCallHandling.stop` sempre chamam `hw.cpu.para()`, então o comportamento é igual ao da Tarefa 1 (testado). Nas Tarefas 5 e 6 as rotinas passam a decidir: timer troca de processo sem parar; `STOP`/erro só param se não houver outro processo.
+- Pegadinha da Tarefa 2: comentar o `case STOP` inteiro faz o `STOP` cair no `default` e virar `intInstrucaoInvalida`. O `case` tem que continuar existindo (é ele que desvia para `sysCall.stop()`).
+- Efeito temporário: como o `executaProcesso` (T1B) marca `TERMINADO` sempre que o `run()` volta, um processo interrompido pelo relógio aparece como `TERMINADO` no `ps`. Some quando o escalonador existir.
+- ⏳ Para a Tarefa 5: se a rotina do timer **não** chamar `para()`, o `irpt` continua ligado e a CPU trataria a mesma interrupção de novo na volta seguinte. Quem zera o `irpt` é o `setContext` (chamado pelo escalonador ao restaurar o próximo processo).
+- ⏳ Para a Tarefa 6: o `case STOP` não faz `pc++`; tudo bem, porque depois do `STOP` o escalonador troca o contexto (o `pc` do processo terminado não é mais usado).
+- ⏳ Para a Tarefa 6: se o `STOP` cair na última instrução da fatia, hoje aparecem `SYSCALL STOP` e depois `intTempo`. Quando o `STOP` passar a chamar o escalonador (que faz `setContext` e zera o contador), conferir esse caso.
 - ⏳ A decidir com o estudante: o que fazer com o resultado de um processo que termina, já que o enunciado manda liberar memória e PCB no `STOP` (sugestão: mostrar o dump do processo antes de liberar); o que acontece com o comando `exec <id>` agora que existe relógio.
 
 ---

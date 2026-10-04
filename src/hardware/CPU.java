@@ -47,6 +47,10 @@ public class CPU {
     private int delta;          // [T1C] tamanho da fatia de tempo (em instruções)
     private int contadorCiclos; // [T1C] instruções já executadas na fatia atual
 
+    public void para(){
+        cpuStop = true;
+    }
+
 
     // fim do codigo do grupo ================================================================================
 
@@ -327,9 +331,10 @@ public class CPU {
                         pc++;
                         break;
 
+                    // [T1C] - Agora o SO decide quando para
                     case STOP: // por enquanto, para execucao
                         sysCall.stop();
-                        cpuStop = true;
+                        //cpuStop = true;
                         break;
 
                     // Inexistente
@@ -350,7 +355,7 @@ public class CPU {
             // VERIFICA INTERRUPÇÃO !!! - TERCEIRA FASE DO CICLO DE INSTRUÇÕES
             if (irpt != Interrupts.noInterrupt) { // existe interrupção
                 ih.handle(irpt);                  // desvia para rotina de tratamento - esta rotina é do SO
-                cpuStop = true;                   // nesta versao, para a CPU
+                //cpuStop = true;                   // nesta versao, para a CPU
             }
         } // FIM DO CICLO DE UMA INSTRUÇÃO
     }

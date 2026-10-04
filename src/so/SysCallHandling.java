@@ -13,6 +13,7 @@ public class SysCallHandling {
     public void stop() { // chamada de sistema indicando final de programa
         // nesta versao cpu simplesmente pára
         System.out.println("                                               SYSCALL STOP");
+        hw.cpu.para(); // [T1C] por enquanto o stop para a CPU
     }
 
     public void handle() { // chamada de sistema

@@ -15,5 +15,6 @@ public class InterruptHandling {
         // apenas avisa - todas interrupcoes neste momento finalizam o programa
         System.out.println(
                 "                                               Interrupcao " + irpt + "   pc: " + hw.cpu.pc);
+        hw.cpu.para(); //[T1C] por enquanto toda int. para a CPU
     }
 }
