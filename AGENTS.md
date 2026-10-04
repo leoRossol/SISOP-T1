@@ -209,17 +209,16 @@ Enunciado: `enunciados/T1-T1C.pdf`. Requisitos:
 #### Checklist
 
 Parte 1 — versão sequencial (`execAll`), seguindo a página "Sequencial" do `Esquema.pdf`:
-- [x] **Relógio na CPU** (estudante): `intTempo` no `Interrupts`; `delta` e contador de instruções na `CPU`; a cada `delta` instruções liga `intTempo`; contador zera no `setContext`
-- [x] **CPU não para em toda interrupção** (estudante): quem decide é a rotina do SO; `CPU` ganha um jeito de parar quando não há mais processos (ex.: `cpu.para()`); `case STOP` deixa de ligar `cpuStop` sozinho
-- [x] **Troca de contexto no GP** (estudante): separar `salvaContexto(pcb)` e `restauraContexto(pcb)` do código que já existe no `executaProcesso`
-- [x] **Escalonador** (estudante): `GP.escalona()` tira o primeiro de `prontos`, marca `RODANDO` e restaura o contexto; se `prontos` estiver vazio, `rodando = null` e a CPU para
-- [x] **Rotina do timer** (estudante): `InterruptHandling` recebe o `GP`; em `intTempo` salva o contexto do `rodando`, põe no fim de `prontos` (`PRONTO`) e chama `escalona()`
-- [x] **Fim de processo** (estudante): `STOP` (em `SysCallHandling.stop`) e interrupções de erro (endereço inválido, overflow, instrução inválida) finalizam o `rodando` (libera memória e PCB) e chamam `escalona()`
-- [x] **Adaptar `exec <id>`** (estudante): passos 5 e 6 do `executaProcesso` **comentados** (o estudante ainda vai decidir se apaga)
-- [x] **Modo `exec <id>` da T1B** (Tarefa 6b, feita pelo **agente** a pedido do estudante, sem tempo): `boolean execUnico` no GP; ligado pelo `executaProcesso` antes do `run()` e desligado depois; com ele ligado, `trocaPorTempo` faz `salvaContexto` + `restauraContexto` do mesmo processo (fatia nova, zera `irpt`/contador) e `escalona` para a CPU em vez de pegar o próximo
-- [x] **Comando `execAll`** (agente, shell): chama `escalona()` + `cpu.run()`; mensagens do escalonador mostram quem sai e quem entra
-- [x] Testes do `execAll` (agente): vários processos, `delta` pequeno e grande, processo que termina com erro, resultados na memória
-- [ ] Tag git `t1c-sequencial` ao fechar a Parte 1 (garante a versão sequencial para a apresentação)
+- [x] **Relógio na CPU**: `intTempo` no `Interrupts`; `delta` e contador de instruções na `CPU`; a cada `delta` instruções liga `intTempo`; contador zera no `setContext`
+- [x] **CPU não para em toda interrupção**: quem decide é a rotina do SO; `CPU` ganha um jeito de parar quando não há mais processos (ex.: `cpu.para()`); `case STOP` deixa de ligar `cpuStop` sozinho
+- [x] **Troca de contexto no GP**: separar `salvaContexto(pcb)` e `restauraContexto(pcb)` do código que já existe no `executaProcesso`
+- [x] **Escalonador**: `GP.escalona()` tira o primeiro de `prontos`, marca `RODANDO` e restaura o contexto; se `prontos` estiver vazio, `rodando = null` e a CPU para
+- [x] **Rotina do timer**: `InterruptHandling` recebe o `GP`; em `intTempo` salva o contexto do `rodando`, põe no fim de `prontos` (`PRONTO`) e chama `escalona()`
+- [x] **Fim de processo**: `STOP` (em `SysCallHandling.stop`) e interrupções de erro (endereço inválido, overflow, instrução inválida) finalizam o `rodando` (libera memória e PCB) e chamam `escalona()`
+- [x] **Adaptar `exec <id>`**: passos 5 e 6 do `executaProcesso` **comentados** (o estudante ainda vai decidir se apaga)
+- [x] **Modo `exec <id>` da T1B**: `boolean execUnico` no GP; ligado pelo `executaProcesso` antes do `run()` e desligado depois; com ele ligado, `trocaPorTempo` faz `salvaContexto` + `restauraContexto` do mesmo processo (fatia nova, zera `irpt`/contador) e `escalona` para a CPU em vez de pegar o próximo
+- [x] **Comando `execAll`**: chama `escalona()` + `cpu.run()`; mensagens do escalonador mostram quem sai e quem entra
+- [x] Testes do `execAll`: vários processos, `delta` pequeno e grande, processo que termina com erro, resultados na memória
 
 Parte 2 — funcionamento contínuo com threads (página "multithreaded" do `Esquema.pdf`):
 - [ ] (detalhar quando a parte 1 estiver pronta)
