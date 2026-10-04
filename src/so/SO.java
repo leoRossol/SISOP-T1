@@ -11,12 +11,13 @@ public class SO {
     public GP gp;                         // [T1B] gerente de processos
 
     public SO(HW hw, int tamPg) {         // [T1A] recebe tamanho de página
-        ih = new InterruptHandling(hw); // rotinas de tratamento de int
-        sc = new SysCallHandling(hw); // chamadas de sistema
-        hw.cpu.setAddressOfHandlers(ih, sc);
+
         
         gm = new GM(hw.mem.pos.length, tamPg); // [T1A] cria o GM
         utils = new Utilities(hw, gm);         // [T1A] Utilities recebe o GM para fazer a carga
         gp = new GP(gm, utils, hw);                // [T1B] cria o GP
+        ih = new InterruptHandling(hw, gp); // rotinas de tratamento de int
+        sc = new SysCallHandling(hw, gp); // chamadas de sistema
+        hw.cpu.setAddressOfHandlers(ih, sc);
     }
 }

@@ -6,15 +6,19 @@ import hardware.Interrupts;
 // ------------------- I N T E R R U P C O E S - rotinas de tratamento
 public class InterruptHandling {
     private HW hw; // referencia ao hw se tiver que setar algo
+    private GP gp;
 
-    public InterruptHandling(HW _hw) {
+    public InterruptHandling(HW _hw, GP _gp) {
         hw = _hw;
+        gp = _gp;
     }
 
     public void handle(Interrupts irpt) {
-        // apenas avisa - todas interrupcoes neste momento finalizam o programa
         System.out.println(
                 "                                               Interrupcao " + irpt + "   pc: " + hw.cpu.pc);
-        hw.cpu.para(); //[T1C] por enquanto toda int. para a CPU
+        
+        if (irpt == Interrupts.intTempo){
+            gp.trocaPorTempo();
+        } else {gp.terminaProcesso();}
     }
 }

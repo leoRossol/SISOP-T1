@@ -1,4 +1,5 @@
 // [T1B] Criado pelo grupo - Gerente de Processos (cria, busca, remove e lista processos)
+// [T1C] + troca de contexto e escalonador
 package so;
 
 import hardware.HW;
@@ -25,6 +26,10 @@ public class GP {
         rodando = null;
         proximoId = 0;
     }
+
+    // =====================================================================
+    // [T1B] Gerência de processos: cria, busca, remove, lista, executa, dump
+    // =====================================================================
 
     public boolean criaProcesso(Word[] programa) {
         if (programa == null) {
@@ -124,28 +129,6 @@ public class GP {
         return true;
     }
 
-    // [T1C] coloca na CPU o contexto guardado no PCB (processo entrando na CPU)
-    private void restauraContexto(PCB pcb) {
-        // 1- setContext com o pc e a tabela de páginas do PCB
-        hw.cpu.setContext(pcb.getPc(), pcb.getTabelaPaginas());
-            //registradores: copiar pcb.getReg() para cpu.reg
-        int[] regsProcesso = pcb.getReg();
-        for (int i=0; i < regsProcesso.length; i++){
-            hw.cpu.reg[i] = regsProcesso[i];
-        }
-    }
-
-    // [T1C] guarda no PCB o contexto atual da CPU (processo saindo da CPU)
-    private void salvaContexto(PCB pcb) {
-        // 1- guardar hw.cpu.pc no PCB
-        pcb.setPc(hw.cpu.pc);
-        int[] regsProcesso = pcb.getReg();
-            // registradores: copiar hw.cpu.reg para os registradores do PCB
-        for (int i=0; i<regsProcesso.length; i++){
-            regsProcesso[i] = hw.cpu.reg[i];
-        }
-    }
-
     public boolean dumpProcesso(int id) {
         // 1- buscar o PCB
         PCB pcb = buscarProcesso(id);
@@ -178,4 +161,88 @@ public class GP {
 
     public List<PCB> getProcessos() { return processos; }
     public int getUltimoId() { return proximoId - 1;}
+
+    // =====================================================================
+    // [T1C] Escalonamento: troca de contexto e escalonador
+    // =====================================================================
+
+    // coloca na CPU o contexto guardado no PCB (processo entrando na CPU)
+    private void restauraContexto(PCB pcb) {
+        // 1- setContext com o pc e a tabela de páginas do PCB
+        hw.cpu.setContext(pcb.getPc(), pcb.getTabelaPaginas());
+            //registradores: copiar pcb.getReg() para cpu.reg
+        int[] regsProcesso = pcb.getReg();
+        for (int i=0; i < regsProcesso.length; i++){
+            hw.cpu.reg[i] = regsProcesso[i];
+        }
+    }
+
+    // guarda no PCB o contexto atual da CPU (processo saindo da CPU)
+    private void salvaContexto(PCB pcb) {
+        // 1- guardar hw.cpu.pc no PCB
+        pcb.setPc(hw.cpu.pc);
+        int[] regsProcesso = pcb.getReg();
+            // registradores: copiar hw.cpu.reg para os registradores do PCB
+        for (int i=0; i<regsProcesso.length; i++){
+            regsProcesso[i] = hw.cpu.reg[i];
+        }
+    }
+
+    // escalonador round robin: põe na CPU o primeiro processo da fila de prontos
+    public void escalona() {
+            // 1- se prontos estiver vazia para tudo
+        if (prontos.isEmpty()){
+            rodando = null;
+            hw.cpu.para();
+            return;
+        }
+            // 2- tirar o primeiro PCB de prontos
+        PCB pcb = prontos.get(0);
+        prontos.remove(0);
+            // 3- rodando passa a ser esse PCB; estado RODANDO
+        rodando = pcb;
+        pcb.setEstado(EstadoProcesso.RODANDO);
+            // 4- restaurar o contexto dele na CPU
+        restauraContexto(pcb);
+        System.out.println("ESCALONADOR: entra processo: " +pcb.getId());
+    }
+
+    // fim da fatia de tempo: processo atual volta para o fim da fila e outro entra
+    public void trocaPorTempo() {
+            // 0- relógio tocou mas o último processo acabou nesta instrucao -> nada a trocar
+        if (rodando == null){
+            return;
+        }
+            // 1- salvar o contexto do processo que está rodando
+        PCB pcb = rodando;
+        salvaContexto(rodando);
+            // 2- estado PRONTO
+        pcb.setEstado(EstadoProcesso.PRONTO);
+            // 3- colocar no fim da fila de prontos
+        prontos.addLast(pcb);
+        System.out.println("ESCALONADOR: fim do slice, sai processo: " +pcb.getId());
+            // 4- chamar o escalonador
+        escalona();
+    }
+
+    // fim do processo que está rodando (STOP ou erro): mostra o resultado, libera e escalona outro
+    public void terminaProcesso() {
+            // 1- pegar o processo que está rodando
+        PCB pcb = rodando;
+            // 2- mensagem "ESCALONADOR: processo X terminou"
+        System.out.println("ESCALONADOR: termino do processo: " +pcb.getId());
+            // 3- salva estado final e mostra o dump
+        salvaContexto(pcb);
+        pcb.setEstado(EstadoProcesso.TERMINADO);
+        dumpProcesso(pcb.getId());
+            // 4- liberar memória e PCB
+        desalocaProcesso(pcb.getId());
+            // 5- chamar o escalonador
+        escalona();
+    }
+
+
+
+
+
 }

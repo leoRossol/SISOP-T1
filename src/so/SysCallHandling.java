@@ -5,15 +5,16 @@ import hardware.HW;
 // ------------------- C H A M A D A S   D E   S I S T E M A - rotinas de tratamento
 public class SysCallHandling {
     private HW hw; // referencia ao hw se tiver que setar algo
+    private GP gp;
 
-    public SysCallHandling(HW _hw) {
+    public SysCallHandling(HW _hw, GP _gp) {
         hw = _hw;
+        gp = _gp;
     }
 
     public void stop() { // chamada de sistema indicando final de programa
-        // nesta versao cpu simplesmente pára
         System.out.println("                                               SYSCALL STOP");
-        hw.cpu.para(); // [T1C] por enquanto o stop para a CPU
+        gp.terminaProcesso(); // [T1C]
     }
 
     public void handle() { // chamada de sistema
