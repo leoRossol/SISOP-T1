@@ -16,6 +16,8 @@ public class GP {
     private PCB rodando;
     private int proximoId;
     private HW hw;
+    private boolean execUnico; // [T1C] true = exec <id> (roda só um processo, sem preempção)
+
 
     public GP(GM _gm, Utilities _utils, HW _hw) {
         gm = _gm;
@@ -25,6 +27,7 @@ public class GP {
         prontos = new ArrayList<>();
         rodando = null;
         proximoId = 0;
+        execUnico = false; // [T1C] começa no modo escalonado (execAll)
     }
 
     // =====================================================================
@@ -116,15 +119,18 @@ public class GP {
         // 3- restaurar o contexto na CPU
         restauraContexto(pcb);
 
-        // 4- rodar a CPU
+        // 4- rodar a CPU só com este processo   // [T1C] modo exec: sem troca por tempo
+        execUnico = true;
         hw.cpu.run();
+        execUnico = false;  // [T1C] volta ao modo escalonado para o próximo execAll
 
+        // [T1C] passos 5 e 6 comentados: quem cuida do fim agora é o terminaProcesso
         // 5- salvar o contexto de volta no PCB (pc e registradores)
-        salvaContexto(pcb);
+        //salvaContexto(pcb);
 
         // 6- processo terminou, atualizar estados
-        rodando = null;
-        pcb.setEstado(EstadoProcesso.TERMINADO);
+        //rodando = null;
+        //pcb.setEstado(EstadoProcesso.TERMINADO);
 
         return true;
     }
@@ -191,7 +197,8 @@ public class GP {
     // escalonador round robin: põe na CPU o primeiro processo da fila de prontos
     public void escalona() {
             // 1- se prontos estiver vazia para tudo
-        if (prontos.isEmpty()){
+            //    [T1C] no modo exec também para: só aquele processo roda, os outros ficam PRONTO
+        if (prontos.isEmpty() || execUnico){
             rodando = null;
             hw.cpu.para();
             return;
@@ -211,6 +218,14 @@ public class GP {
     public void trocaPorTempo() {
             // 0- relógio tocou mas o último processo acabou nesta instrucao -> nada a trocar
         if (rodando == null){
+            return;
+        }
+            // [T1C] modo exec: não troca de processo, ele só ganha uma fatia nova.
+            //       salva + restaura o MESMO processo: o setContext zera o irpt e o contador
+            //       (só um return deixaria o intTempo ligado e ele seria tratado em toda instrução)
+        if (execUnico){
+            salvaContexto(rodando);
+            restauraContexto(rodando);
             return;
         }
             // 1- salvar o contexto do processo que está rodando

@@ -1,4 +1,5 @@
 // [T1B] Criado pelo grupo - Shell: lê comandos do usuário e chama o GP, o GM e a CPU
+// [T1C] + comando execAll
 package so;
 
 import hardware.HW;
@@ -95,6 +96,20 @@ public class Shell {
                 so.gp.executaProcesso(idExec);
                 break;
 
+            // [T1C] executa todos os processos em round robin até acabarem
+            case "execAll":
+                // sem processos, o escalona() só pararia a CPU, mas o run() desliga o
+                // cpuStop ao começar e executaria o contexto velho que sobrou na CPU
+                if (so.gp.getProcessos().isEmpty()) {
+                    System.out.println("Nenhum processo para executar. Use 'new <programa>'.");
+                    return;
+                }
+                System.out.println("execAll: " + so.gp.getProcessos().size() + " processo(s) na fila de prontos");
+                so.gp.escalona();   // põe o primeiro da fila na CPU
+                hw.cpu.run();       // roda até o escalonador parar a CPU (fila vazia)
+                System.out.println("execAll: todos os processos terminaram");
+                break;
+
             case "traceOn":
                 hw.cpu.setDebug(true);
                 System.out.println("Trace ligado.");
@@ -120,7 +135,8 @@ public class Shell {
                 System.out.println("  ps                    lista os processos");
                 System.out.println("  dump <id>             mostra PCB e memoria do processo");
                 System.out.println("  dumpM <inicio> <fim>  mostra a memoria fisica [inicio, fim)");
-                System.out.println("  exec <id>             executa o processo");
+                System.out.println("  exec <id>             executa so o processo <id> ate o fim (sem escalonar)"); // [T1C]
+                System.out.println("  execAll               executa todos os processos em round robin"); // [T1C]
                 System.out.println("  traceOn / traceOff    liga/desliga o trace da CPU");
                 System.out.println("  progs                 lista os programas disponiveis");
                 System.out.println("  exit                  sai");
