@@ -73,7 +73,7 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T1B** (concluída em 03/10; a próxima é a T1C)
+**Fase atual: T1C** (iniciada em 03/10)
 
 ### Prazo e plano
 
@@ -196,7 +196,7 @@ Enunciado: `enunciados/T1-T1B.pdf`. Requisitos:
 
 ---
 
-### T1C — Escalonamento (ainda não iniciado)
+### T1C — Escalonamento (em andamento)
 
 Enunciado: `enunciados/T1-T1C.pdf`. Requisitos:
 - **Troca de contexto:** salvar o contexto da CPU no PCB quando o processo sai da CPU e restaurar quando ele volta.
@@ -208,11 +208,27 @@ Enunciado: `enunciados/T1-T1C.pdf`. Requisitos:
 
 #### Checklist
 
-- [ ] (montar quando a fase começar, junto com o estudante)
+Parte 1 — versão sequencial (`execAll`), seguindo a página "Sequencial" do `Esquema.pdf`:
+- [x] **Relógio na CPU** (estudante): `intTempo` no `Interrupts`; `delta` e contador de instruções na `CPU`; a cada `delta` instruções liga `intTempo`; contador zera no `setContext`
+- [ ] **CPU não para em toda interrupção** (estudante): quem decide é a rotina do SO; `CPU` ganha um jeito de parar quando não há mais processos (ex.: `cpu.para()`); `case STOP` deixa de ligar `cpuStop` sozinho
+- [ ] **Troca de contexto no GP** (estudante): separar `salvaContexto(pcb)` e `restauraContexto(pcb)` do código que já existe no `executaProcesso`
+- [ ] **Escalonador** (estudante): `GP.escalona()` tira o primeiro de `prontos`, marca `RODANDO` e restaura o contexto; se `prontos` estiver vazio, `rodando = null` e a CPU para
+- [ ] **Rotina do timer** (estudante): `InterruptHandling` recebe o `GP`; em `intTempo` salva o contexto do `rodando`, põe no fim de `prontos` (`PRONTO`) e chama `escalona()`
+- [ ] **Fim de processo** (estudante): `STOP` (em `SysCallHandling.stop`) e interrupções de erro (endereço inválido, overflow, instrução inválida) finalizam o `rodando` (libera memória e PCB) e chamam `escalona()`
+- [ ] **Comando `execAll`** (agente, shell): chama `escalona()` + `cpu.run()`; mensagens do escalonador mostram quem sai e quem entra
+- [ ] Testes do `execAll` (agente): vários processos, `delta` pequeno e grande, processo que termina com erro, resultados na memória
+
+Parte 2 — funcionamento contínuo com threads (página "multithreaded" do `Esquema.pdf`):
+- [ ] (detalhar quando a parte 1 estiver pronta)
 
 #### Decisões e observações
 
-- (nenhuma ainda)
+- Ordem escolhida (03/10): primeiro a versão sequencial com `execAll`, depois as threads. A versão sequencial já tem toda a lógica de escalonamento; as threads só mudam **quem** chama a CPU e o escalonador.
+- **`delta`** chega pelo construtor, igual ao `tamPg`: `main` → `Sistema(tamMem, tamPg, delta)` → `HW(tamMem, tamPg, delta)` → `CPU(mem, tamPg, delta, debug)`. Valor usado: **5** (exemplo do próprio `Esquema.pdf`). Delta pequeno = muitas trocas (overhead); grande demais = vira FIFO e o escalonamento não aparece.
+- **Relógio** no `run()`, depois do `switch` e antes do "VERIFICA INTERRUPÇÃO": `contadorCiclos++`; se `contadorCiclos >= delta && irpt == noInterrupt`, liga `intTempo`. O `== noInterrupt` impede que o relógio apague uma interrupção de erro da mesma instrução (primeira versão só testava `intEnderecoInvalido` e apagaria `intOverflow`/`intInstrucaoInvalida`). `>=` em vez de `==` cobre `delta <= 0`. O `setContext` zera o contador (processo novo = fatia nova).
+- Teste (03/10, fora do repo): fatorial com delta 5 para com `intTempo` no pc 5 depois de exatamente 5 instruções; PB com delta 2 (erro e fim de fatia na mesma instrução) mantém `intEnderecoInvalido`; fatorial com delta 1000 chega ao `STOP` com 5040.
+- ⏳ Para a Tarefa 2: se o `STOP` cair na última instrução da fatia, hoje aparecem `SYSCALL STOP` e depois `intTempo`. Quando o `STOP` passar a chamar o escalonador (que faz `setContext` e zera o contador), conferir esse caso.
+- ⏳ A decidir com o estudante: o que fazer com o resultado de um processo que termina, já que o enunciado manda liberar memória e PCB no `STOP` (sugestão: mostrar o dump do processo antes de liberar); o que acontece com o comando `exec <id>` agora que existe relógio.
 
 ---
 

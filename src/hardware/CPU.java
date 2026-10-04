@@ -4,11 +4,6 @@ import so.InterruptHandling;
 import so.SysCallHandling;
 import so.Utilities;
 
-
-
-
-
-
 // ---------------------------------------------------------------------------------------------------
 // --------------------- C P U - definicoes da CPU
 
@@ -23,6 +18,7 @@ public class CPU {
         pc = _pc;                       // pc cfe endereco logico
         tabelaPaginas = _tabela;
         irpt = Interrupts.noInterrupt;  // reset da interrupcao registrada
+        contadorCiclos = 0;     // [T1C] reset do ciclos para um processo novo
     }
 
     // [T1A] traduz endereço lógico -> físico; se inválido, liga intEnderecoInvalido e devolve -1
@@ -33,22 +29,25 @@ public class CPU {
                 irpt = Interrupts.intEnderecoInvalido;
                 return -1;
         }
-
         //2- calcular a pagina e offset
         int pagina = endLogico/tamPg;
         int offset = endLogico%tamPg;
-
         //3- a pagina existe na tabela desse processo
         if (pagina >= tabelaPaginas.length){
             irpt = Interrupts.intEnderecoInvalido;
             return -1;
         }
-
         //4- calcular o fisico e devolver
         int frame = tabelaPaginas[pagina];
         int fisico = (frame * tamPg) + offset;
         return fisico;
     }
+
+    // [T1C] ===============================================================================
+    private int delta;          // [T1C] tamanho da fatia de tempo (em instruções)
+    private int contadorCiclos; // [T1C] instruções já executadas na fatia atual
+
+
     // fim do codigo do grupo ================================================================================
 
 
@@ -78,13 +77,15 @@ public class CPU {
     private boolean debug;      // se true entao mostra cada instrucao em execucao
     private Utilities u;        // para debug (dump)
 
-    public CPU(Memory _mem, int _tamPg, boolean _debug) { // ref a MEMORIA passada na criacao da CPU  // [T1A] recebe tamPg
+    public CPU(Memory _mem, int _tamPg, int _delta, boolean _debug) { // ref a MEMORIA passada na criacao da CPU  // [T1A] recebe tamPg  // [T1C] recebe delta
         maxInt = 32767;            // capacidade de representacao modelada
         minInt = -32767;           // se exceder deve gerar interrupcao de overflow
         m = _mem.pos;              // usa o atributo 'm' para acessar a memoria, só para ficar mais pratico
+        
         tamPg = _tamPg;            // [T1A] tamanho da página, usado no traduz
-        reg = new int[10];         // aloca o espaço dos registradores - regs 8 e 9 usados somente para IO
+        delta = _delta;            // [T1C] tamanho da fatia, usado pelo relógio no run()
 
+        reg = new int[10];         // aloca o espaço dos registradores - regs 8 e 9 usados somente para IO
         debug = _debug;            // se true, print da instrucao em execucao
 
     }
@@ -140,6 +141,7 @@ public class CPU {
                     System.out.print("                      pc: " + pc + "       exec: ");
                     u.dump(ir);
                 }
+
 
                 // --------------------------------------------------------------------------------------------------
                 // FASE DE EXECUCAO DA INSTRUCAO CARREGADA NO ir
@@ -336,6 +338,14 @@ public class CPU {
                         break;
                 }
             }
+
+            // [T1C] Relogio
+            contadorCiclos++;
+            if (contadorCiclos >= delta && irpt == Interrupts.noInterrupt){
+                irpt = Interrupts.intTempo;
+            }
+
+
             // --------------------------------------------------------------------------------------------------
             // VERIFICA INTERRUPÇÃO !!! - TERCEIRA FASE DO CICLO DE INSTRUÇÕES
             if (irpt != Interrupts.noInterrupt) { // existe interrupção
