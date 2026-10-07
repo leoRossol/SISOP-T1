@@ -31,7 +31,11 @@ public class EscalonadorThread extends Thread {
             }
 
             gp.escalona();
-            hw.cpu.run();        
+            // [T1C] só roda a CPU se o escalona() pôs um processo nela; com a fila vazia,
+            // o run() executaria o contexto velho (STOP de processo já liberado) em loop
+            if (gp.temRodando()) {
+                hw.cpu.run();
+            }
         }
     }
 }

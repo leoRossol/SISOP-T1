@@ -254,6 +254,11 @@ public class GP {
         }
     }
 
+    // [T1C] true se o escalonador colocou um processo na CPU (usado pela EscalonadorThread)
+    public boolean temRodando() {
+        return rodando != null;
+    }
+
     public int getUltimoId() {
         return proximoId - 1;
     }
