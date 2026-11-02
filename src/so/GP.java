@@ -14,6 +14,7 @@ public class GP {
     private Utilities utils;
     private List<PCB> processos;
     private List<PCB> prontos;
+    private List<PCB> bloqueados;
     private PCB rodando;
     private int proximoId;
     private HW hw;
@@ -27,6 +28,7 @@ public class GP {
         hw = _hw;
         processos = new ArrayList<>();
         prontos = new ArrayList<>();
+        bloqueados = new ArrayList<>();
         rodando = null;
         proximoId = 0;
         execUnico = false; // [T1C] começa no modo escalonado (execAll)
@@ -104,6 +106,7 @@ public class GP {
         gm.desaloca(pcb.getTabelaPaginas());
         processos.remove(pcb);
         prontos.remove(pcb);
+        bloqueados.remove(pcb);
 
         if (rodando == pcb) {
             rodando = null;
@@ -380,7 +383,61 @@ private void trocaPorTempoInterno() {
     escalonaInterno();
 }
 
-    // fim do processo que está rodando (STOP ou erro): mostra o resultado, libera e escalona outro
+
+
+
+
+
+
+public void bloqueiaProcesso() {
+    boolean interrompida = false;
+
+    while (true) {
+        try {
+            mutex.acquire();
+            break;
+        } catch (InterruptedException e) {
+            interrompida = true;
+        }
+    }
+
+    try {
+        bloqueiaProcessoInterno();
+    } finally {
+        mutex.release();
+
+        if (interrompida) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+private void bloqueiaProcessoInterno() {
+    //1- se ninguem rodando, volta
+    if (rodando == null) {
+        return;
+    }
+
+    //2- estado bloqueado
+    PCB pcb = rodando;
+    salvaContexto(pcb);
+
+    //3- colocar em bloqueados
+    pcb.setEstado(EstadoProcesso.BLOQUEADO);
+    bloqueados.add(pcb);
+
+    System.out.println(
+            "ESCALONADOR: bloqueio de IO no processo " + pcb.getId());
+
+    escalonaInterno();
+}
+
+
+
+
+
+
+// fim do processo que está rodando (STOP ou erro): mostra o resultado, libera e escalona outro
     public void terminaProcesso() {
         boolean interrompida = false;
 

@@ -340,9 +340,10 @@ public class CPU {
 
                     // Chamadas de sistema
                     case SYSCALL:
+                        pc++; //[T2A] adaptacao para que o pc ande antes do handle
                         sysCall.handle(); // <<<<< aqui desvia para rotina de chamada de sistema, no momento so
                         // temos IO
-                        pc++;
+                        //pc++;
                         break;
 
                     // [T1C] - Agora o SO decide quando para

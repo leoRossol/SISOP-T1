@@ -283,7 +283,7 @@ Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithrea
 
 - [x] Hardware: interrupção `intIO` + variável na CPU onde o dispositivo sinaliza (com cuidado: é escrita por outra thread)
 - [x] `PedidoIO` (processo, IN/OUT, endereço, tabela de páginas). A fila de pedidos fica para a tarefa do console
-- [ ] Fila de bloqueados no GP + `bloqueiaProcesso` (salva contexto com o `pc` **depois** do `SYSCALL`, estado `BLOQUEADO`, escalona outro)
+- [x] Fila de bloqueados no GP + `bloqueiaProcesso` (salva contexto com o `pc` **depois** do `SYSCALL`, estado `BLOQUEADO`, escalona outro)
 - [ ] Syscall IN/OUT: cria o pedido, enfileira e bloqueia (não faz mais o IO na hora)
 - [ ] Thread do console: consome pedidos, faz o IO por DMA (tradução com a tabela **do processo do pedido**, não a da CPU) e sinaliza a CPU
 - [ ] Rotina de retorno de IO: bloqueado → pronto; o processo que está rodando continua
@@ -302,6 +302,9 @@ Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithrea
 - ⚠️ Pendente (Tarefa 5): se o console sinalizar um segundo IO antes de a CPU consumir o primeiro, o `sinalIO` é sobrescrito. O console precisa esperar o sinal ser consumido.
 - **`PedidoIO`** (Tarefa 2, 02/11, `so/PedidoIO.java`): `idProcesso`, `tipo` (1 = IN, 2 = OUT, valor do `reg[8]`), `endLogico` (valor do `reg[9]`) e `tabelaPaginas`; construtor + getters, **sem setters** (o pedido não muda depois de criado). Guarda **valores** e não o vetor `reg` da CPU: o vetor é reaproveitado pelo próximo processo (mesma armadilha de referência da T1B). Leva a tabela de páginas porque, quando o console atender, a CPU já terá a tabela de **outro** processo (`cpu.traduz` traduziria errado) — é o DMA do enunciado. A tabela pode ser compartilhada por referência porque é do processo e não muda enquanto ele existe.
 - ⚠️ Pendente (Tarefa 8, shell): `rm` de um processo `BLOQUEADO` com pedido na fila → os frames são liberados, mas o pedido ainda tem a tabela antiga; o console escreveria em frames que podem ser de outro processo. Decidir: recusar o `rm` de bloqueado ou tirar o pedido da fila.
+- **Bloqueio** (Tarefa 3, 02/11): `List<PCB> bloqueados` no GP (criada no construtor; `desalocaProcessoInterno` também remove dela). `bloqueiaProcesso()` público (mutex, mesmo formato do `trocaPorTempo`) → `bloqueiaProcessoInterno()`: guarda `rodando == null` → `salvaContexto(rodando)` → `BLOQUEADO` → `bloqueados.add` → mensagem → `escalonaInterno()`. Diferença para o `trocaPorTempo`: vai para `bloqueados` e não para `prontos`, então o escalonador não o escolhe até o IO terminar. Bloqueado **não** usa a CPU. Ainda sem chamador (entra na Tarefa 4).
+- **`pc++` antes do `sysCall.handle()`** no `case SYSCALL` da CPU (código do professor, marcado `[T2A]`). Com o `pc++` depois, o bloqueio (que troca de processo dentro do `handle`) salvaria o pc **no** `SYSCALL` (o processo repetiria a syscall para sempre) e o `pc++` cairia no **próximo** processo (que pularia uma instrução). Conferido (agente, 02/11): ninguém lê o `cpu.pc` durante o `handle` esperando o endereço do `SYSCALL`; único efeito visível é que um erro dentro da syscall mostra pc + 1. CPUs reais também guardam a instrução seguinte como retorno da syscall (pergunta provável).
+- Detalhe (não é bug): depois de um bloqueio, o `contadorCiclos++` do relógio conta 1 para o processo que acabou de entrar; a primeira fatia dele tem `delta - 1` instruções.
 
 ---
 
