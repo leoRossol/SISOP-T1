@@ -282,7 +282,7 @@ Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithrea
 #### Checklist
 
 - [x] Hardware: interrupção `intIO` + variável na CPU onde o dispositivo sinaliza (com cuidado: é escrita por outra thread)
-- [ ] `PedidoIO` (processo, IN/OUT, endereço) e fila de pedidos do console
+- [x] `PedidoIO` (processo, IN/OUT, endereço, tabela de páginas). A fila de pedidos fica para a tarefa do console
 - [ ] Fila de bloqueados no GP + `bloqueiaProcesso` (salva contexto com o `pc` **depois** do `SYSCALL`, estado `BLOQUEADO`, escalona outro)
 - [ ] Syscall IN/OUT: cria o pedido, enfileira e bloqueia (não faz mais o IO na hora)
 - [ ] Thread do console: consome pedidos, faz o IO por DMA (tradução com a tabela **do processo do pedido**, não a da CPU) e sinaliza a CPU
@@ -300,6 +300,8 @@ Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithrea
 - **Sinal de IO na CPU** (Tarefa 1, 02/11): `private volatile int sinalIO = -1` no bloco `[T2A]` da CPU. Guarda o **id do processo** cujo IO terminou (`-1` = nenhum), porque com `boolean` a rotina não saberia qual bloqueado liberar. `volatile` porque é escrito pela thread do console e lido pela da CPU. `sinalizaIO(_idProcesso)` (chamado pelo console) escreve; `pegaSinalIO()` (chamado pela rotina do SO) devolve o id e volta para `-1`. No `run()`, depois do relógio: `if (sinalIO != -1 && irpt == noInterrupt) irpt = intIO`. A CPU **não** limpa o sinal: se o relógio tocar na mesma instrução, o IO é tratado na instrução seguinte e nada se perde.
 - ⚠️ Pendente (Tarefa 6): o `InterruptHandling.handle` hoje manda tudo que não é `intTempo` para o `terminaProcesso`; a `intIO` precisa de um caso próprio, senão mata o processo que está rodando.
 - ⚠️ Pendente (Tarefa 5): se o console sinalizar um segundo IO antes de a CPU consumir o primeiro, o `sinalIO` é sobrescrito. O console precisa esperar o sinal ser consumido.
+- **`PedidoIO`** (Tarefa 2, 02/11, `so/PedidoIO.java`): `idProcesso`, `tipo` (1 = IN, 2 = OUT, valor do `reg[8]`), `endLogico` (valor do `reg[9]`) e `tabelaPaginas`; construtor + getters, **sem setters** (o pedido não muda depois de criado). Guarda **valores** e não o vetor `reg` da CPU: o vetor é reaproveitado pelo próximo processo (mesma armadilha de referência da T1B). Leva a tabela de páginas porque, quando o console atender, a CPU já terá a tabela de **outro** processo (`cpu.traduz` traduziria errado) — é o DMA do enunciado. A tabela pode ser compartilhada por referência porque é do processo e não muda enquanto ele existe.
+- ⚠️ Pendente (Tarefa 8, shell): `rm` de um processo `BLOQUEADO` com pedido na fila → os frames são liberados, mas o pedido ainda tem a tabela antiga; o console escreveria em frames que podem ser de outro processo. Decidir: recusar o `rm` de bloqueado ou tirar o pedido da fila.
 
 ---
 
