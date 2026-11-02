@@ -73,7 +73,7 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T1C** (iniciada em 03/10)
+**Fase atual: T2A** (iniciada em 02/11). O T1 (A+B+C) foi apresentado e avaliado: **nota 10**.
 
 ### Prazo e plano
 
@@ -257,6 +257,49 @@ Parte 2 — funcionamento contínuo com threads (página "multithreaded" do `Esq
 - **Bug no modo contínuo (agente, 06/10, testado fora do repo):** `start` → `new fatorial` → `new fibonacci10` (o segundo criado **enquanto** o primeiro roda). O `new fatorial` libera 1 permissão, que a thread consome; o `new fibonacci10` vê `availablePermits() == 0` e libera outra. Os dois terminam e a thread consome a permissão que sobrou → `escalona()` com `prontos` vazia chama `para()`, mas o `cpu.run()` seguinte desliga o `cpuStop` e executa o contexto velho (pc 16 = `STOP` do processo já liberado) → `terminaProcesso` com `rodando == null` só faz `return` (não para a CPU) → `SYSCALL STOP` + `intTempo` para sempre; `exit` trava no `join`. Criar os processos **antes** do `start` funciona (foi o caso testado em 04/10). Correção testada numa cópia (não aplicada; a dupla decide): `GP.temRodando()` (`rodando != null`) e, na `EscalonadorThread`, `if (gp.temRodando()) { hw.cpu.run(); }`. É o mesmo problema que a guarda do `execAll` no `Shell` já evita. Observação: `exec`/`execAll` com a thread ativa poriam duas threads na mesma CPU; não usar os dois modos ao mesmo tempo.
 - **Bug de 06/10 reconfirmado (agente, 07/10):** quebrava o **item 6 do guia de apresentação do professor** ("criação de novo processo, que passa a ser escalonado com os demais imediatamente"): `start` → `new fatorial` → `new fibonacci10` gera loop infinito de `SYSCALL STOP`/`intTempo` (4,8 milhões de linhas em 15 s) e o `exit` não encerra. **Corrigido no repo (07/10, agente, a pedido do estudante, só essa proteção):** `GP.temRodando()` (`rodando != null`) e, na `EscalonadorThread`, `if (gp.temRodando()) { hw.cpu.run(); }`, marcados com `[T1C]`. Testado: o cenário acima termina normalmente e o roteiro inteiro da apresentação funciona (criação, `ps`, frames não contíguos `[0, 1, 8, 9]`, `exec`, `execAll`, thread com 3 `new` colados de uma vez, `stop`, `exit`). Detalhes cosméticos: `exit` depois de `stop` imprime "Escalonador não está ativo."; acentos saem errados no console do Windows.
 - Testes da 6b (agente, 04/10, fora do repo): delta 5, fatorial + fibonacci10 + progMinimo, `exec 1` → só o fibonacci roda (nenhum "entra/sai"), termina com 55, `ps` mostra 0 e 2 `PRONTO` com pc 0; `execAll` depois → 0 e 2 em round robin (999 e 5040), `ps` vazio. `exec` num PB → morre por endereço inválido, fatorial continua `PRONTO`; `exec 0` → 5040; `exec 0` de novo → "nao encontrado". Delta 1 (relógio em toda instrução): `exec 0` e `exec 1` → 5040 e 55 sem exceção; `execAll` sem processos → aviso.
+
+---
+
+### T2A — Projeto concorrente: E/S com bloqueio (em andamento)
+
+Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithreaded)"). Requisitos:
+- **Três estados:** running, ready e **blocked**.
+- **IN/OUT assíncronos:** a syscall de IN/OUT cria um **pedido** e coloca na **fila do dispositivo**; o processo é **bloqueado** (salva contexto no PCB, estado bloqueado, entra na **fila de bloqueados**) e outro processo pronto é escalonado.
+- **Dispositivo (console) = thread** em loop: consome pedidos da fila (produtor/consumidor), executa o IN/OUT e **interrompe a CPU**.
+- **Nova interrupção de IO** com código e rotina próprios: o dispositivo escreve numa **variável da CPU** criada para isso. A rotina passa o processo de bloqueado para **prontos**; o processo que estava rodando **continua** e termina a fatia dele.
+- **DMA:** o dispositivo lê/escreve direto na memória do processo que pediu (no IN, o valor lido vai para a posição pedida). Quando o processo voltar, o valor já está lá.
+- **Shell concorrente:** o SO aceita novos processos enquanto executa os outros (já existe desde a T1C).
+- **Testes:** criar vários processos e ver o escalonamento e o IO acontecendo.
+- Sugestão do enunciado: threads de **shell**, **CPU** (espera num semáforo, roda até timer/syscall/int IO) e **console**.
+
+#### O que já existia da T1C
+- Shell concorrente + `EscalonadorThread` (que hoje faz o papel de "thread da CPU": `escalona()` + `cpu.run()`).
+- `EstadoProcesso.BLOQUEADO` (criado na T1B, nunca usado).
+- Semáforos `mutex` e `processosDisponiveis` no GP; relógio, troca de contexto e `terminaProcesso`.
+- **Não existe:** IN (o `if (reg[8]==1)` do professor está vazio), fila de bloqueados, pedidos de IO, thread de console, interrupção de IO. O OUT hoje é **síncrono** (imprime na própria thread da CPU).
+- Programas de teste com IO: `fatorialV2` (OUT, escreve 120) e `fibonacciREAD` (IN, lê o tamanho da série no endereço 55).
+
+#### Checklist
+
+- [x] Hardware: interrupção `intIO` + variável na CPU onde o dispositivo sinaliza (com cuidado: é escrita por outra thread)
+- [ ] `PedidoIO` (processo, IN/OUT, endereço) e fila de pedidos do console
+- [ ] Fila de bloqueados no GP + `bloqueiaProcesso` (salva contexto com o `pc` **depois** do `SYSCALL`, estado `BLOQUEADO`, escalona outro)
+- [ ] Syscall IN/OUT: cria o pedido, enfileira e bloqueia (não faz mais o IO na hora)
+- [ ] Thread do console: consome pedidos, faz o IO por DMA (tradução com a tabela **do processo do pedido**, não a da CPU) e sinaliza a CPU
+- [ ] Rotina de retorno de IO: bloqueado → pronto; o processo que está rodando continua
+- [ ] CPU ociosa: IO termina quando nenhum processo está rodando (ninguém para ver a interrupção) → acordar o escalonador
+- [ ] Shell: forma do usuário responder o IN; `ps` mostrando `BLOQUEADO`
+- [ ] Decidir o que acontece com `exec <id>` e `execAll` (modos sequenciais da T1C)
+- [ ] Testes: `fatorialV2` + `fibonacciREAD` + programas sem IO juntos; IO com CPU ociosa; vários pedidos na fila
+
+#### Decisões e observações
+
+-  Prazo da T2A: 18/11/2026.
+-  Arquitetura das threads: manter a `EscalonadorThread` como "thread da CPU".
+-  Entrada do IN: O usuário responde o IN **pelo shell** ("resposta de pedido de IN ao módulo de IO").
+- **Sinal de IO na CPU** (Tarefa 1, 02/11): `private volatile int sinalIO = -1` no bloco `[T2A]` da CPU. Guarda o **id do processo** cujo IO terminou (`-1` = nenhum), porque com `boolean` a rotina não saberia qual bloqueado liberar. `volatile` porque é escrito pela thread do console e lido pela da CPU. `sinalizaIO(_idProcesso)` (chamado pelo console) escreve; `pegaSinalIO()` (chamado pela rotina do SO) devolve o id e volta para `-1`. No `run()`, depois do relógio: `if (sinalIO != -1 && irpt == noInterrupt) irpt = intIO`. A CPU **não** limpa o sinal: se o relógio tocar na mesma instrução, o IO é tratado na instrução seguinte e nada se perde.
+- ⚠️ Pendente (Tarefa 6): o `InterruptHandling.handle` hoje manda tudo que não é `intTempo` para o `terminaProcesso`; a `intIO` precisa de um caso próprio, senão mata o processo que está rodando.
+- ⚠️ Pendente (Tarefa 5): se o console sinalizar um segundo IO antes de a CPU consumir o primeiro, o `sinalIO` é sobrescrito. O console precisa esperar o sinal ser consumido.
 
 ---
 

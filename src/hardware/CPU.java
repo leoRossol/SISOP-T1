@@ -51,9 +51,23 @@ public class CPU {
         cpuStop = true;
     }
 
+    // [T2A] ================================================================================
+    private volatile int sinalIO = -1;
 
-    // fim do codigo do grupo ================================================================================
+    public void sinalizaIO(int _idProcesso){
+        sinalIO = _idProcesso;
+    }
 
+    public int pegaSinalIO(){
+        //1- guarda o valor atual numa var local
+        int idSinal = sinalIO;
+        //2- volta sinalIO para -1
+        sinalIO = -1;
+        //3- devolve o valor guardado
+        return idSinal;
+    }
+
+    // ==============================================================================================
 
 
 
@@ -348,6 +362,11 @@ public class CPU {
             contadorCiclos++;
             if (contadorCiclos >= delta && irpt == Interrupts.noInterrupt){
                 irpt = Interrupts.intTempo;
+            }
+
+            // [T2A] verifica se o console terminou algum pedido
+            if (sinalIO != -1 && irpt == Interrupts.noInterrupt){
+                irpt = Interrupts.intIO;
             }
 
 
