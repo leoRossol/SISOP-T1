@@ -162,6 +162,16 @@ public class Shell {
                 pararEscalonador();
                 break;
 
+            // [T2A] resposta do usuário ao pedido de IN que o console está atendendo
+            case "in":
+                if (!confereArgs(partes, 1, "in <valor>")) { return; }
+                Integer valorIN = leNumero(partes[1]);
+                if (valorIN == null) { return; }
+                if (!so.console.respondeIN(valorIN)) {
+                    System.out.println("Nenhum processo esperando IN.");
+                }
+                break;
+
             case "traceOn":
                 hw.cpu.setDebug(true);
                 System.out.println("Trace ligado.");
@@ -191,6 +201,7 @@ public class Shell {
                 System.out.println("  execAll               executa todos os processos em round robin"); // [T1C]
                 System.out.println("  start                 inicia a thread do escalonador");
                 System.out.println("  stop                  para a thread do escalonador");
+                System.out.println("  in <valor>            responde o pedido de IN de um processo"); // [T2A]
                 System.out.println("  traceOn / traceOff    liga/desliga o trace da CPU");
                 System.out.println("  progs                 lista os programas disponiveis");
                 System.out.println("  exit                  sai");

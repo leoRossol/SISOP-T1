@@ -2,7 +2,7 @@
 package so;
 
 import hardware.HW;
-import hardware.Interrupts;
+import hardware.Opcode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +16,10 @@ public class Console extends Thread {
     private HW hw;
     private int tamPg;
     private GP gp;      // para acordar a thread da CPU quando ela está ociosa
+    private Semaphore respostaIN;
+    private volatile int valorIN;
+    private volatile boolean esperandoIN;
+
 
 
     public Console(HW _hw, int _tamPg, GP _gp) {
@@ -26,6 +30,8 @@ public class Console extends Thread {
         hw = _hw;
         tamPg = _tamPg;
         gp = _gp;
+        respostaIN = new Semaphore(0);
+        esperandoIN = false;
     }
 
 
@@ -95,6 +101,22 @@ public class Console extends Thread {
 
 
 
+    // resposta do usuário a um IN (chamado pelo shell); devolve false se nenhum IN esperava resposta
+    public boolean respondeIN(int _valor) {
+        //1- nenhum IN esperando
+        if (!esperandoIN) {
+            return false;
+        }
+        //2- guarda o valor ANTES de acordar o console
+        valorIN = _valor;
+        //3- desliga aqui (thread do shell): um segundo "in" digitado logo depois é recusado
+        esperandoIN = false;
+        //4- acorda o console
+        respostaIN.release();
+        return true;
+    }
+
+
     public void pararThread() {
         ativa = false;
         interrupt();
@@ -123,6 +145,28 @@ public class Console extends Thread {
                 int fis = traduz(pedido.getTabelaPaginas(), pedido.getEndLogico());
                 if (fis >= 0) {
                     System.out.println("OUT:   " + hw.mem.pos[fis].p);
+                } else {
+                    System.out.println("CONSOLE: endereco invalido no pedido do processo " + pedido.getIdProcesso());
+                }
+            } else if (pedido.getTipo() == 1) {      // IN
+                int fis = traduz(pedido.getTabelaPaginas(), pedido.getEndLogico());
+                if (fis >= 0) {
+                    System.out.println("CONSOLE: processo " + pedido.getIdProcesso()
+                            + " pede um valor (IN). Digite: in <valor>");
+                    esperandoIN = true;
+
+                    // espera o usuário responder pelo shell (os outros processos continuam rodando)
+                    try {
+                        respostaIN.acquire();
+                    } catch (InterruptedException e) {
+                        break;                      // exit enquanto esperava a resposta
+                    }
+
+                    // DMA: grava o valor direto na memória do processo que pediu
+                    hw.mem.pos[fis].opc = Opcode.DATA;
+                    hw.mem.pos[fis].p = valorIN;
+                    System.out.println("CONSOLE: valor " + valorIN + " gravado no endereco "
+                            + pedido.getEndLogico() + " do processo " + pedido.getIdProcesso());
                 } else {
                     System.out.println("CONSOLE: endereco invalido no pedido do processo " + pedido.getIdProcesso());
                 }
