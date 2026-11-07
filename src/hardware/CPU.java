@@ -83,6 +83,12 @@ public class CPU {
         irpt = Interrupts.noInterrupt;
     }
 
+    public boolean temSinalIO(){
+        if (sinalIO != -1){
+            return true;
+        } return false;
+    }
+
 
     
 

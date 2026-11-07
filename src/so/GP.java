@@ -262,6 +262,13 @@ public class GP {
         return rodando != null;
     }
 
+    // [T2A] acorda a thread da CPU se ela estiver dormindo (chamado pelo console ao fim de um IO)
+    public void acordaEscalonador() {
+        if (processosDisponiveis.availablePermits() == 0) {
+            processosDisponiveis.release();
+        }
+    }
+
     public int getUltimoId() {
         return proximoId - 1;
     }

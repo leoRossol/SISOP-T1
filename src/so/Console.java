@@ -15,15 +15,17 @@ public class Console extends Thread {
     private volatile boolean ativa;
     private HW hw;
     private int tamPg;
+    private GP gp;      // para acordar a thread da CPU quando ela está ociosa
 
 
-    public Console(HW _hw, int _tamPg) {
+    public Console(HW _hw, int _tamPg, GP _gp) {
         fila = new ArrayList<>();
         mutexFila = new Semaphore(1);
         pedidosDisponiveis = new Semaphore(0);
         ativa = true;
         hw = _hw;
         tamPg = _tamPg;
+        gp = _gp;
     }
 
 
@@ -128,6 +130,9 @@ public class Console extends Thread {
 
             // avisa a CPU que o IO deste processo terminou
             hw.cpu.sinalizaIO(pedido.getIdProcesso());
+
+            // se a CPU estiver ociosa (thread dormindo), acorda ela para tratar o aviso
+            gp.acordaEscalonador();
         }
     }
 }

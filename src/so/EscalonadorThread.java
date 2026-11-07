@@ -30,6 +30,12 @@ public class EscalonadorThread extends Thread {
                 break;
             }
 
+            // [T2A] CPU ociosa: se um IO terminou enquanto ninguém rodava, ninguém viu a intIO.
+            // Trata o aviso aqui (bloqueado -> pronto) antes de escalonar.
+            if (hw.cpu.temSinalIO()) {
+                gp.desbloqueiaProcesso(hw.cpu.pegaSinalIO());
+            }
+
             gp.escalona();
             // [T1C] só roda a CPU se o escalona() pôs um processo nela; com a fila vazia,
             // o run() executaria o contexto velho (STOP de processo já liberado) em loop
