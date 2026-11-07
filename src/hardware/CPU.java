@@ -3,6 +3,7 @@ package hardware;
 import so.InterruptHandling;
 import so.SysCallHandling;
 import so.Utilities;
+import java.util.concurrent.Semaphore; // [T2A] vaga do sinal de IO
 
 // ---------------------------------------------------------------------------------------------------
 // --------------------- C P U - definicoes da CPU
@@ -53,8 +54,16 @@ public class CPU {
 
     // [T2A] ================================================================================
     private volatile int sinalIO = -1;
+    private Semaphore sinalLivre = new Semaphore(1);
 
     public void sinalizaIO(int _idProcesso){
+        try {
+            sinalLivre.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
         sinalIO = _idProcesso;
     }
 
@@ -63,9 +72,14 @@ public class CPU {
         int idSinal = sinalIO;
         //2- volta sinalIO para -1
         sinalIO = -1;
-        //3- devolve o valor guardado
+        //3- libera a vaga do sinal
+        sinalLivre.release();
+        //4- devolve o valor guardado
         return idSinal;
     }
+
+
+    
 
     // ==============================================================================================
 

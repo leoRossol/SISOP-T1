@@ -15,7 +15,8 @@ public class SO {
         gm = new GM(hw.mem.pos.length, tamPg); // [T1A] cria o GM
         utils = new Utilities(hw, gm);         // [T1A] Utilities recebe o GM para fazer a carga
         gp = new GP(gm, utils, hw);                // [T1B] cria o GP
-        console = new Console();                //[T2A]
+        console = new Console(hw, tamPg);                //[T2A]
+        console.start();                         // [T2A] o console (dispositivo) liga junto com o SO
         ih = new InterruptHandling(hw, gp); // rotinas de tratamento de int
         sc = new SysCallHandling(hw, gp, console); // chamadas de sistema
         hw.cpu.setAddressOfHandlers(ih, sc);

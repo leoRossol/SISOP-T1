@@ -66,8 +66,15 @@ public class Shell {
 
             if (comando.equals("exit")) {
                 pararEscalonador();
+                // [T2A] desliga o console e espera a thread terminar
+                so.console.pararThread();
+                try {
+                    so.console.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 break;
-}
+            }
             executaComando(comando, partes);
         }
         System.out.println("Fim do shell.");
