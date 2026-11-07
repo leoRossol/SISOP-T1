@@ -6,10 +6,12 @@ import hardware.HW;
 public class SysCallHandling {
     private HW hw; // referencia ao hw se tiver que setar algo
     private GP gp;
+    private Console console; // [T2A] dispositivo que recebe os pedidos de IO
 
-    public SysCallHandling(HW _hw, GP _gp) {
+    public SysCallHandling(HW _hw, GP _gp, Console _console) { // [T2A] recebe o console
         hw = _hw;
         gp = _gp;
+        console = _console; // [T2A]
     }
 
     public void stop() { // chamada de sistema indicando final de programa
@@ -20,18 +22,37 @@ public class SysCallHandling {
     public void handle() { // chamada de sistema
         // suporta somente IO, com parametros
         // reg[8] = in ou out    e reg[9] endereco do inteiro
+        
         System.out.println("SYSCALL pars:  " + hw.cpu.reg[8] + " / " + hw.cpu.reg[9]);
 
-        if  (hw.cpu.reg[8]==1){
+        //if  (hw.cpu.reg[8]==1){
             // leitura ...
 
-        } else if (hw.cpu.reg[8]==2){
+        //} else if (hw.cpu.reg[8]==2){
             // escrita - escreve o conteuodo da memoria na posicao dada em reg[9]
-            int fis = hw.cpu.traduz(hw.cpu.reg[9]);           // [T1A] reg[9] é endereço lógico
-            if (fis >= 0) {                                    // [T1A]
-                System.out.println("OUT:   "+ hw.mem.pos[fis].p);
-            }
+           // int fis = hw.cpu.traduz(hw.cpu.reg[9]);           // [T1A] reg[9] é endereço lógico
+           // if (fis >= 0) {                                    // [T1A]
+           //     System.out.println("OUT:   "+ hw.mem.pos[fis].p);
+          //  }
 
-        } else {System.out.println("  PARAMETRO INVALIDO"); }
+      //  } else {System.out.println("  PARAMETRO INVALIDO"); }
+
+
+
+        // [T2A] quem faz IO agora eh o console
+        if (hw.cpu.reg[8]==1 || hw.cpu.reg[8]==2) {
+            
+            // 1- cria o pedido usando os regs de IO e endereco
+            PedidoIO pedido = gp.criaPedidoIO(hw.cpu.reg[8], hw.cpu.reg[9]);
+
+            // 2- bloqueia o processo que esta rodando, coloca pedido na fila do console
+            if (pedido != null) {
+                gp.bloqueiaProcesso();
+                console.adicionaPedido(pedido);
+            }
+        } else {
+            System.out.println(" PARAMETRO INVALIDO");
+        }
+
     }
 }

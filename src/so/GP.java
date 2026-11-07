@@ -436,6 +436,29 @@ private void bloqueiaProcessoInterno() {
 
 
 
+// [T2A] monta o pedido de IO com os dados do processo que está rodando
+public PedidoIO criaPedidoIO(int _tipo, int _endLogico) {
+   
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
+
+        try {
+            if (rodando == null) {
+                return null;
+            } else {
+                return new PedidoIO(rodando.getId(), _tipo, _endLogico, rodando.getTabelaPaginas());
+            }
+        } finally { mutex.release(); }
+}
+
+
+
+
+
 
 // fim do processo que está rodando (STOP ou erro): mostra o resultado, libera e escalona outro
     public void terminaProcesso() {
