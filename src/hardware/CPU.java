@@ -78,6 +78,11 @@ public class CPU {
         return idSinal;
     }
 
+    // o SO avisa que já tratou a interrupção (usado na intIO, que não troca de processo)
+    public void limpaInterrupcao() {
+        irpt = Interrupts.noInterrupt;
+    }
+
 
     
 

@@ -434,6 +434,57 @@ private void bloqueiaProcessoInterno() {
 
 
 
+// [T2A] fim de IO: o processo <id> sai de bloqueados e vai para prontos
+// [T2A] fim de IO: o processo <_id> sai de bloqueados e vai para prontos
+public void desbloqueiaProcesso(int _id) {
+    boolean interrompida = false;
+
+    while (true) {
+        try {
+            mutex.acquire();
+            break;
+        } catch (InterruptedException e) {
+            interrompida = true;
+        }
+    }
+
+    try {
+        desbloqueiaProcessoInterno(_id);
+    } finally {
+        mutex.release();
+
+        if (interrompida) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+private void desbloqueiaProcessoInterno(int _id) {
+    //1- achar o PCB com esse id na fila de bloqueados
+    PCB pcb = null;
+    for (PCB p : bloqueados) {
+        if (p.getId() == _id) {
+            pcb = p;
+            break;
+        }
+    }
+
+    //2- se nao achou, volta
+    if (pcb == null) {
+        return;
+    }
+
+    //3- sai de bloqueados e vai para o fim de prontos
+    bloqueados.remove(pcb);
+    pcb.setEstado(EstadoProcesso.PRONTO);
+    prontos.add(pcb);
+
+    System.out.println(
+            "ESCALONADOR: fim de IO, processo " + pcb.getId() + " volta para prontos");
+
+    // sem escalonaInterno(): quem esta rodando continua e termina a fatia dele
+}
+
 
 
 // [T2A] monta o pedido de IO com os dados do processo que está rodando
