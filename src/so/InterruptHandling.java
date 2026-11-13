@@ -23,6 +23,12 @@ public class InterruptHandling {
             int id = hw.cpu.pegaSinalIO();              // id do processo cujo IO terminou (libera a vaga)
             gp.desbloqueiaProcesso(id);                 // bloqueados -> prontos
             hw.cpu.limpaInterrupcao();                  // sem troca de contexto, ninguém zeraria o irpt
+        } else if (irpt == Interrupts.intPageFault) {   // [T2B] pagina ausente: bloqueia e pede ao disco
+            gp.trataPageFault(hw.cpu.getPaginaFaltante());
+            hw.cpu.limpaInterrupcao();
+        } else if (irpt == Interrupts.intIOVM) {        // [T2B] disco terminou salvar ou carregar uma pagina
+            gp.finalizaIOVM(hw.cpu.pegaSinalVM());
+            hw.cpu.limpaInterrupcao();
         } else {gp.terminaProcesso();}
     }
 }

@@ -1,6 +1,7 @@
 package hardware;
 
 import so.InterruptHandling;
+import so.PedidoVM;
 import so.SysCallHandling;
 import so.Utilities;
 import java.util.concurrent.Semaphore; // [T2A] vaga do sinal de IO
@@ -13,6 +14,7 @@ public class CPU {
     // [T1A] contexto de memória do processo ===============================================
     private int[] tabelaPaginas; // tabela de paginas do processo em execucao
     private int tamPg;         // tamanho da pagina
+    private int paginaFaltante; // [T2B] pagina que causou o ultimo page fault
 
     // [T1A] substitui o setContext(int) original: agora recebe também a tabela de páginas
     public void setContext(int _pc, int[] _tabela) {
@@ -20,9 +22,10 @@ public class CPU {
         tabelaPaginas = _tabela;
         irpt = Interrupts.noInterrupt;  // reset da interrupcao registrada
         contadorCiclos = 0;     // [T1C] reset do ciclos para um processo novo
+        paginaFaltante = -1;    // [T2B] nenhum page fault pendente no novo contexto
     }
 
-    // [T1A] traduz endereço lógico -> físico; se inválido, liga intEnderecoInvalido e devolve -1
+    // [T1A/T2B] traduz endereco logico -> fisico; pagina ausente gera intPageFault
     public int traduz(int endLogico){
 
         //1- enderco negativo -> invalido
@@ -40,8 +43,17 @@ public class CPU {
         }
         //4- calcular o fisico e devolver
         int frame = tabelaPaginas[pagina];
+        if (frame < 0){
+            paginaFaltante = pagina;
+            irpt = Interrupts.intPageFault;
+            return -1;
+        }
         int fisico = (frame * tamPg) + offset;
         return fisico;
+    }
+
+    public int getPaginaFaltante(){
+        return paginaFaltante;
     }
 
     // [T1C] ===============================================================================
@@ -87,6 +99,32 @@ public class CPU {
         if (sinalIO != -1){
             return true;
         } return false;
+    }
+
+    // [T2B] sinal equivalente ao do console, mas exclusivo para o dispositivo de disco
+    private volatile PedidoVM sinalVM = null;
+    private Semaphore sinalVMLivre = new Semaphore(1);
+
+    public void sinalizaVM(PedidoVM _pedido){
+        try {
+            sinalVMLivre.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        sinalVM = _pedido;
+    }
+
+    public PedidoVM pegaSinalVM(){
+        PedidoVM pedido = sinalVM;
+        sinalVM = null;
+        sinalVMLivre.release();
+        return pedido;
+    }
+
+    public boolean temSinalVM(){
+        return sinalVM != null;
     }
 
 
@@ -393,6 +431,11 @@ public class CPU {
             // [T2A] verifica se o console terminou algum pedido
             if (sinalIO != -1 && irpt == Interrupts.noInterrupt){
                 irpt = Interrupts.intIO;
+            }
+
+            // [T2B] verifica se o disco terminou uma leitura ou gravacao de pagina
+            if (sinalVM != null && irpt == Interrupts.noInterrupt){
+                irpt = Interrupts.intIOVM;
             }
 
 

@@ -36,6 +36,11 @@ public class EscalonadorThread extends Thread {
                 gp.desbloqueiaProcesso(hw.cpu.pegaSinalIO());
             }
 
+            // [T2B] se o disco terminou com a CPU ociosa, trata antes de escolher processo
+            if (hw.cpu.temSinalVM()) {
+                gp.finalizaIOVM(hw.cpu.pegaSinalVM());
+            }
+
             gp.escalona();
             // [T1C] só roda a CPU se o escalona() pôs um processo nela; com a fila vazia,
             // o run() executaria o contexto velho (STOP de processo já liberado) em loop

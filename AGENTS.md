@@ -73,7 +73,7 @@ No VSCode: F5 (configuração em `.vscode/launch.json`). JDK 21.
 
 O Trabalho 1 tem três partes, feitas em sequência: **T1A → T1B → T1C**. Cada uma se apoia na anterior.
 
-**Fase atual: T2A** (iniciada em 02/11). O T1 (A+B+C) foi apresentado e avaliado: **nota 10**.
+**Fase atual: T2B** (concluída em 11/11). O T1 (A+B+C) foi apresentado e avaliado: **nota 10**.
 
 ### Prazo e plano
 
@@ -325,6 +325,35 @@ Enunciado: `enunciados/T2-T2A.pdf` (a página 2 tem o "Esquema do SO (multithrea
 - Testes da Tarefa 8 (07/11, delta 5): `in 5` sem processo → aviso; `fibonacciREAD` + `fibonacci10` + `start` → o P0 bloqueia no IN (pc 3) e o `fibonacci10` roda e **termina** enquanto o console espera o usuário; `in 10` → `valor 10 gravado no endereco 55`, P0 volta e gera 10 termos (0..34 nas posições 41–50); `in 7` logo depois → recusado; `in abc` → `'abc' nao e um numero.`. `fibonacciREAD` sozinho (CPU ociosa) + `in 3` → 0, 1, 1. `exit` com IN esperando → encerra (1 s). `fatorialV2` + `fibonacciREAD` + `fibonacci10` → o IN do P1 chegou primeiro na fila; o OUT do P0 **esperou** o usuário responder o IN (o console atende um pedido por vez, como um dispositivo real) e depois saiu `OUT: 120`; todos terminam.
 - **Decisão (07/11, estudante): `exec <id>` e `execAll` ficam como estão** (modos sequenciais da T1C, sem mudança de código). Nos dois, quem roda a CPU é a **thread do shell**; com IO, o processo bloqueia, a CPU para e o comando volta. Testado: `execAll` com `fatorialV2` + `fibonacci10` → o fibonacci termina, o P0 volta para `PRONTO` mas a CPU já parou, e a mensagem diz "todos os processos terminaram" (não é verdade); `exec 0` com `fatorialV2` → P0 fica `BLOQUEADO`. Nos dois casos, `start` depois termina o processo (o aviso pendente e a ficha do `acordaEscalonador` ficam guardados). Por que não fazer o `execAll` esperar o IO: o IN precisa que o usuário digite `in <valor>` **no shell**, que estaria preso dentro do `execAll` → deadlock. É o motivo de a T2A pedir threads separadas para shell, CPU e console. **Resposta para a apresentação:** "`exec`/`execAll` são os modos sequenciais da T1C, em que o shell roda a CPU; com IO assíncrono o shell precisa ficar livre para responder o IN, então o IO é feito no modo contínuo (`start`)". ⚠️ Continua valendo: não usar `exec`/`execAll` com o escalonador ligado (duas threads na mesma CPU). Ajustes possíveis, não feitos: mensagem do `execAll` avisando processos que sobraram; recusar `exec`/`execAll` com o escalonador ativo.
 - **Roteiro de apresentação** (agente, 07/11): `ROTEIRO-T2A.md` na raiz, com 6 partes ligadas aos requisitos do enunciado (escalonamento contínuo, OUT assíncrono, IN com outro processo rodando, CPU ociosa, vários pedidos na fila + `intIO` durante outro processo, `exit` com IN esperando), tabela "se o professor pedir" e perguntas prováveis. Rodado inteiro numa sessão só (11 processos), sem erro. **Todos os itens do checklist da T2A concluídos em 07/11.**
+
+---
+
+### T2B — Memória Virtual por demanda (concluída)
+
+Enunciado: `enunciados/T2-T2B.pdf`.
+
+#### Checklist
+
+- [x] PCB com tabela de páginas da RAM (`-1` = ausente) e tabela de páginas do disco
+- [x] Disco paginado, com alocação, liberação e cópia profunda de `Word`
+- [x] Criação de processo grava o programa inteiro no disco e carrega somente a página 0 na RAM
+- [x] CPU gera `intPageFault` e informa a página faltante
+- [x] Thread do disco, fila de `PedidoVM` e interrupção `intIOVM`
+- [x] Page fault bloqueia o processo; fim de leitura retorna bloqueado → pronto
+- [x] CPU ociosa é acordada quando o disco termina
+- [x] Substituição FIFO: salva a vítima no disco antes de reutilizar seu frame
+- [x] `dump <id>` mostra as tabelas RAM/disco e páginas ausentes
+- [x] `exec` e `execAll` esperam o I/O de VM; `IN`/`OUT` de usuário continuam no modo `start`
+- [x] Testes: múltiplos page faults, IN/OUT com páginas ausentes, 33 processos (143 cargas, 44 salvamentos), sem exceções
+
+#### Decisões e observações
+
+- `PAGINA_AUSENTE = -1` diferencia uma página válida fora da RAM de endereço lógico inválido.
+- O disco tem `10 × tamMem` palavras e usa os mesmos frames/páginas da RAM. Cada processo recebe uma cópia integral do programa no disco.
+- A política de vítima é FIFO com ponteiro circular. Um frame marcado `frameEmIO` não pode ser escolhido enquanto está sendo salvo ou carregado, evitando corrida entre a thread do disco e a CPU.
+- Para DMA do Console, a syscall testa o endereço do buffer antes de enfileirar IN/OUT. Se a página está ausente, desfaz o `pc++` da syscall; após o page fault, a mesma syscall é executada novamente com a página residente.
+- Classes novas: `Disco` (dispositivo e armazenamento) e `PedidoVM` (pedido de carregar/salvar). Alterações desta fase são marcadas `[T2B]`.
+- **T2B concluída em 11/11.** Antes da apresentação, a dupla deve revisar especialmente o fluxo page fault → bloqueio → disco → `intIOVM` → pronto e a substituição FIFO.
 
 ---
 

@@ -41,6 +41,15 @@ public class SysCallHandling {
 
         // [T2A] quem faz IO agora eh o console
         if (hw.cpu.reg[8]==1 || hw.cpu.reg[8]==2) {
+            // [T2B] o endereco do buffer precisa estar residente antes do DMA do Console.
+            // Se a pagina faltar, volta o pc para repetir esta syscall apos o page fault.
+            int fis = hw.cpu.traduz(hw.cpu.reg[9]);
+            if (fis < 0) {
+                if (hw.cpu.getPaginaFaltante() >= 0) {
+                    hw.cpu.pc--;
+                }
+                return;
+            }
             
             // 1- cria o pedido usando os regs de IO e endereco
             PedidoIO pedido = gp.criaPedidoIO(hw.cpu.reg[8], hw.cpu.reg[9]);

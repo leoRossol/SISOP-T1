@@ -2,10 +2,14 @@
 package so;
 
 public class PCB {
+    // [T2B] uma pagina existente, mas fora da memoria principal
+    public static final int PAGINA_AUSENTE = -1;
+
     private int id;
     private int pc;
     private int[] reg;
-    private int[] tabelaPaginas;
+    private int[] tabelaPaginas; // RAM: frame da pagina, ou PAGINA_AUSENTE
+    private int[] tabelaDisco;   // [T2B] disco: frame onde fica a copia da pagina
     private int tamanhoPrograma;
     private EstadoProcesso estado;
 
@@ -22,12 +26,14 @@ public class PCB {
     public int getPc() { return pc; }
     public int[] getReg() { return reg; }
     public int[] getTabelaPaginas() { return tabelaPaginas; }
+    public int[] getTabelaDisco() { return tabelaDisco; }
     public int getTamanhoPrograma() { return tamanhoPrograma; }
     public EstadoProcesso getEstado() { return estado; }
 
     public void setPc(int pc) {this.pc = pc;}
     public void setReg(int[] reg) {this.reg = reg;}
     public void setTabelaPaginas(int[] tabelaPaginas) {this.tabelaPaginas = tabelaPaginas;}
+    public void setTabelaDisco(int[] tabelaDisco) {this.tabelaDisco = tabelaDisco;}
     public void setEstado(EstadoProcesso estado) {this.estado = estado;}
 
 }

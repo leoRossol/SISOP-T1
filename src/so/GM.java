@@ -55,12 +55,32 @@ public class GM {
         } return tabela;
     }
 
+    // [T2B] Aloca um unico frame para carregar uma pagina por demanda.
+    // Devolve -1 quando nao ha frame livre.
+    public int alocaFrame(){
+        for (int i = 0; i < frameLivre.length; i++){
+            if (frameLivre[i]){
+                frameLivre[i] = false;
+                return i;
+            }
+        }
+        return PCB.PAGINA_AUSENTE;
+    }
+
+    // [T2B] Libera um unico frame que deixou de guardar uma pagina na RAM.
+    public void desalocaFrame(int _frame){
+        if (_frame >= 0 && _frame < frameLivre.length){
+            frameLivre[_frame] = true;
+        }
+    }
 
     // Libera os frames de uma tabela de paginas
     // percorre a tabela do processo e marca seus frames como livres
     public void desaloca(int[] tabela){
         for (int p = 0; p < tabela.length; p++){
-            frameLivre[tabela[p]] = true;    // libera o frame onde estava a página p
+            if (tabela[p] != PCB.PAGINA_AUSENTE){
+                desalocaFrame(tabela[p]);    // libera o frame onde estava a página p
+            }
         }
     }
 

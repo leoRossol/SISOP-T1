@@ -73,6 +73,13 @@ public class Shell {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
+                // [T2B] desliga o segundo dispositivo e espera a thread terminar
+                so.disco.pararThread();
+                try {
+                    so.disco.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 break;
             }
             executaComando(comando, partes);
@@ -149,8 +156,7 @@ public class Shell {
                     return;
                 }
                 System.out.println("execAll: " + so.gp.getProcessos().size() + " processo(s) na fila de prontos");
-                so.gp.escalona();   // põe o primeiro da fila na CPU
-                hw.cpu.run();       // roda até o escalonador parar a CPU (fila vazia)
+                so.gp.executaTodosSequencial(); // [T2B] tambem espera page faults do disco
                 System.out.println("execAll: todos os processos terminaram");
                 break;
 
